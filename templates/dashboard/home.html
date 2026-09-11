@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load icons l10n static %}
+{% block title %}Tableau de bord — Panther Home Care{% endblock %}
+{% block heading %}Tableau de bord{% endblock %}
+{% block topbar_actions %}
+  <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:brief_pdf' %}?download" target="_blank">{% icon "download" 15 %} Brief PDF</a>
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+
+{% if user.is_staff %}
+<div class="quick-actions">
+  <a href="{% url 'dashboard:client_new' %}" class="qa">{% icon "clients" 15 %} Nouveau client</a>
+  <a href="{% url 'dashboard:caregiver_new' %}" class="qa">{% icon "caregivers" 15 %} Ajouter un soignant</a>
+  <a href="/admin/scheduling/visit/add/" class="qa">{% icon "schedule" 15 %} Planifier une visite</a>
+  <a href="/admin/incidents/incident/add/" class="qa">{% icon "warning" 15 %} Déclarer un incident</a>
+</div>
+{% endif %}
+
+<div class="tabbar" id="dashtabs">
+  <button class="tab on" data-t="synthese">Synthèse</button>
+  <button class="tab" data-t="ia">IA &amp; priorités</button>
+  <button class="tab" data-t="ops">Opérations</button>
+</div>
+
+<!-- ============ SYNTHÈSE ============ -->
+<div class="tabpane on" data-p="synthese">
+  <!-- Command Center: the single prioritised attention feed -->
+  <div class="command-center">
+    <div class="cc-head"><span class="brain">{% icon "ai" 16 %}</span><b>Centre de commande</b><span class="cc-sub">Ce qui requiert votre attention</span></div>
+    <div class="cc-grid">
+      {% for c in command %}
+      <a class="cc-item t-{{ c.tone }} {% if not c.n %}clear{% endif %}" href="{% url c.url %}">
+        <div class="cc-n">{% if c.n %}{{ c.n }}{% else %}✓{% endif %}</div>
+        <div class="cc-label">{{ c.label }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="kpis kpis-6">
+    <div class="kpi"><div class="label">Clients actifs</div><div class="val">{{ kpi_clients }}</div><div class="delta {% if new_clients %}up{% endif %}">{% if new_clients %}↑ {{ new_clients }} cette semaine{% else %}Suivis en continu{% endif %}</div></div>
+    <div class="kpi"><div class="label">Soignants actifs</div><div class="val">{{ kpi_caregivers }}</div><div class="delta {% if new_caregivers %}up{% endif %}">{% if new_caregivers %}↑ {{ new_caregivers }} cette semaine{% else %}Disponibles{% endif %}</div></div>
+    <div class="kpi"><div class="label">Visites aujourd'hui</div><div class="val">{{ kpi_visits_today }}</div><div class="delta">{{ remaining }} restante{{ remaining|pluralize }}</div></div>
+    <div class="kpi"><div class="label">Terminées</div><div class="val">{{ completed }}</div><div class="delta">Aujourd'hui</div></div>
+    <div class="kpi {% if kpi_incidents_critical %}alert{% endif %}"><div class="label">Incidents ouverts</div><div class="val">{{ kpi_incidents_open }}</div><div class="delta">{% if kpi_incidents_critical %}🔴 {{ kpi_incidents_critical }} critique{{ kpi_incidents_critical|pluralize }}{% else %}Aucun critique{% endif %}</div></div>
+    <div class="kpi {% if billing.outstanding %}alert{% endif %}"><div class="label">À encaisser</div><div class="val">{{ billing.outstanding|floatformat:0 }} $</div><div class="delta">Factures dues</div></div>
+  </div>
+
+  <div class="grid ov3">
+    <div class="card">
+      <div class="head"><h2>{% icon "clients" 14 %} Aperçu clients</h2><a class="chip-link" href="{% url 'dashboard:clients' %}">Voir</a></div>
+      <div class="body">
+        <div class="inc-row"><span>Actifs</span><b>{{ client_overview.active }}</b></div>
+        <div class="inc-row"><span>Nouveaux ce mois</span><b class="trend-down">+{{ client_overview.new_month }}</b></div>
+        <div class="inc-row"><span><span class="dot r"></span>Risque élevé</span><b>{{ client_overview.high_risk }}</b></div>
+        <div class="inc-row total"><span><span class="dot a"></span>Suivis cliniques actifs</span><b>{{ client_overview.concerns }}</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>{% icon "caregivers" 14 %} Aperçu soignants</h2><a class="chip-link" href="{% url 'dashboard:caregivers' %}">Voir</a></div>
+      <div class="body">
+        <div class="cg-status">
+          <div class="cgs g"><b>{{ cg_overview.available }}</b><span>Disponibles</span></div>
+          <div class="cgs b"><b>{{ cg_overview.on_visit }}</b><span>En visite</span></div>
+          <div class="cgs a"><b>{{ certs_expiring }}</b><span>Certifs à renouveler</span></div>
+        </div>
+        {% for c in cg_overview.top %}<div class="inc-row"><span>{{ c.caregiver__code }}</span><b>{{ c.n }} visite{{ c.n|pluralize }}</b></div>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>{% icon "dollar" 14 %} Facturation</h2><a class="chip-link" href="{% url 'dashboard:billing' %}">Ouvrir</a></div>
+      <div class="body">
+        <div class="inc-row"><span>Total facturé</span><b>{{ billing.billed|floatformat:0 }} $</b></div>
+        <div class="inc-row"><span><span class="dot g"></span>Encaissé</span><b>{{ billing.paid|floatformat:0 }} $</b></div>
+        <div class="inc-row"><span><span class="dot a"></span>À encaisser</span><b>{{ billing.outstanding|floatformat:0 }} $</b></div>
+        <div class="inc-row total"><span><span class="dot r"></span>dont en retard</span><b>{{ billing.overdue|floatformat:0 }} $</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="head"><h2>{% icon "analytics" 14 %} Tendance des visites (14 jours)</h2><span class="chip">Planifiées vs terminées</span></div>
+    <div class="body"><div class="chart-wrap" style="height:260px"><canvas id="visitsTrend"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ============ IA & PRIORITÉS ============ -->
+<div class="tabpane" data-p="ia">
+  {% if ai_actions %}
+  <div class="actions-strip">
+    {% for a in ai_actions %}
+    {% if a.type == 'replacement' %}
+    <div class="action-card r">
+      <div class="ac-head">🔴 ACTION RECOMMANDÉE</div>
+      <div class="ac-body">
+        <b>{{ a.client.code }} — visite non couverte à {{ a.time }}</b>
+        <p>{{ a.n_qualified }} soignant{{ a.n_qualified|pluralize }} qualifié{{ a.n_qualified|pluralize }} à moins de {{ a.radius }} km{% if a.top %} · meilleur profil {{ a.top.caregiver.code }} ({{ a.top.score }}%){% endif %}.</p>
+      </div>
+      <div class="ac-foot">
+        {% if a.top %}<form method="post" action="{% url 'dashboard:approve_assignment' a.visit.id %}" style="margin:0">{% csrf_token %}<input type="hidden" name="caregiver_id" value="{{ a.top.caregiver.id }}"><button class="btn btn-approve btn-sm">Affecter {{ a.top.caregiver.code }}</button></form>{% endif %}
+        <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:visit_detail' a.visit.id %}">Réviser le remplacement</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="action-card a">
+      <div class="ac-head">🟠 REVUE CLINIQUE RECOMMANDÉE</div>
+      <div class="ac-body">
+        <b>{{ a.client.code }} — {{ a.symptom }} signalé(s) {{ a.count }} fois cette semaine</b>
+        <p>Panther recommande une revue professionnelle. Ceci n'est pas un diagnostic.</p>
+      </div>
+      <div class="ac-foot"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:client_360' a.client.id %}">Voir le dossier</a></div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card ai-hero">
+    <div class="head">
+      <div class="ai-head"><span class="brain">{% icon "ai" 18 %}</span><h2>PANTHER AI CARE COORDINATOR</h2></div>
+      <span class="chip live">● IA en direct</span>
+    </div>
+    <div class="body">
+      <p class="ai-greet">Bonjour {{ user.first_name|default:user.username }}. Voici ce qui nécessite votre attention :</p>
+      <div class="ai-status">
+        <div class="ai-stat"><span class="dot r"></span><b>{{ uncovered|length }}</b> visite{{ uncovered|length|pluralize }} non couverte{{ uncovered|length|pluralize }}</div>
+        <div class="ai-stat"><span class="dot a"></span><b>{{ late|length }}</b> soignant{{ late|length|pluralize }} en retard</div>
+        <div class="ai-stat"><span class="dot g"></span><b>{{ confirmed }}/{{ total }}</b> visites confirmées</div>
+      </div>
+      {% if recommendation and recommendation.match %}
+      {% with m=recommendation.match v=recommendation.visit %}
+      <div class="ai-reco">
+        <div class="ai-reco-head">{% icon "ai" 14 %} Recommandation IA</div>
+        <p>Le <b>{{ m.caregiver.code }} — {{ m.caregiver.full_name }}</b> correspond à <b>{{ m.score }}%</b> aux exigences de la visite <b>{{ v.client.code }}</b> ({{ v.scheduled_start|time:"H:i" }}–{{ v.scheduled_end|time:"H:i" }}). Je recommande cette affectation.</p>
+        <div class="ai-actions">
+          <form method="post" action="{% url 'dashboard:approve_assignment' v.id %}" style="margin:0">{% csrf_token %}<input type="hidden" name="caregiver_id" value="{{ m.caregiver.id }}"><button class="btn btn-approve">{% icon "check" 15 %} Résoudre automatiquement</button></form>
+          <a class="btn btn-ghost" href="{% url 'dashboard:visit_detail' v.id %}">Voir les détails</a>
+        </div>
+      </div>
+      {% endwith %}
+      {% elif uncovered %}
+      <div class="ai-reco"><p>Aucun soignant disponible ne correspond aux visites non couvertes. Revue manuelle requise.</p><a class="btn btn-ghost" href="{% url 'dashboard:visit_detail' uncovered.0.id %}">Voir les options</a></div>
+      {% else %}
+      <div class="ai-reco ok"><p>{% icon "check" 14 "ok" %} Toutes les visites du jour sont couvertes. Aucune action requise.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card ai-soft">
+      <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>RÉSUMÉ QUOTIDIEN PAR IA</h2></div>
+        <a class="chip-link" href="{% url 'dashboard:brief_pdf' %}?download" target="_blank">{% icon "download" 13 %} PDF</a></div>
+      <div class="body">
+        <div class="brief-line"><span class="dot g"></span>{{ confirmed }}/{{ total }} visites confirmées</div>
+        <div class="brief-line"><span class="dot a"></span>{{ late|length }} soignant{{ late|length|pluralize }} en retard</div>
+        <div class="brief-line"><span class="dot r"></span>{{ uncovered|length }} visite{{ uncovered|length|pluralize }} non couverte{{ uncovered|length|pluralize }}</div>
+        <div class="brief-line"><span class="dot b"></span>{{ flagged_reports|length }} client{{ flagged_reports|length|pluralize }} à surveiller</div>
+        <div class="brief-summary">"{{ brief.summary }}"</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="head"><h2><span class="hdot a"></span> Priorités du jour</h2></div>
+      <div class="body">
+        {% for v in late %}
+        <div class="alert-item"><div class="ai-line"><span class="pill {% if v.minutes_late > 60 %}r{% else %}a{% endif %}">{% if v.minutes_late > 60 %}CRITIQUE{% else %}Retard{% endif %} — {{ v.minutes_late }} min</span><div class="l">{{ v.caregiver.code|default:"Soignant non affecté" }}<small>{{ v.client.code }} · visite {{ v.scheduled_start|time:"H:i" }}</small></div></div>
+          <div class="alert-actions">{% if v.caregiver.phone %}<a class="btn btn-ghost btn-sm" href="tel:{{ v.caregiver.phone }}">Contacter</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'dashboard:visit_detail' v.id %}">Réaffecter</a></div>
+        </div>
+        {% endfor %}
+        {% for r in attention_reports %}
+        <div class="alert-item"><div class="ai-line"><span class="pill a">IA</span><div class="l">{{ r.visit.client.code }} — {{ r.ai_concern|truncatechars:64 }}<small>Rapport {{ r.created_at|time:"H:i" }}</small></div></div>
+          <div class="alert-actions"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:client_360' r.visit.client.id %}">Voir le dossier</a></div>
+        </div>
+        {% empty %}{% if not late %}<p class="empty">Rien à signaler. ✅</p>{% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OPÉRATIONS ============ -->
+<div class="tabpane" data-p="ops">
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="head"><h2>Aujourd'hui<span class="sched-date">{% now "l d F Y" %}</span></h2><a class="chip-link" href="{% url 'dashboard:schedule' %}">{% icon "schedule" 13 %} Planning</a></div>
+        <div class="body sched-body">
+          {% for s in schedule %}
+          <a class="sched-line" href="{% url 'dashboard:visit_detail' s.visit.id %}">
+            <span class="sl-time">{{ s.time }}</span>
+            <span class="sl-track"><span class="sl-bar {% if s.uncovered %}r{% elif s.late %}a{% elif s.visit.status == 'COMPLETED' %}g{% elif s.visit.status == 'IN_PROGRESS' %}b{% else %}n{% endif %}" style="left:{{ s.left|unlocalize }}%;width:{{ s.width|unlocalize }}%"></span></span>
+            <span class="sl-client">{{ s.visit.client.code }}</span>
+            <span class="sl-status">{% if s.uncovered %}<span class="pill r">Non couvert</span>{% elif s.late %}<span class="pill a">Retard {{ s.late }}′</span>{% elif s.visit.status == 'COMPLETED' %}<span class="pill g">Terminé</span>{% elif s.visit.status == 'IN_PROGRESS' %}<span class="pill b">En cours</span>{% else %}<span class="pill n">Planifié</span>{% endif %}</span>
+          </a>
+          {% empty %}<p class="empty">Aucune visite planifiée aujourd'hui.</p>{% endfor %}
+        </div>
+      </div>
+      <div class="card">
+        <div class="head"><h2>{% icon "analytics" 14 %} Performance de la semaine</h2></div>
+        <div class="body">
+          <div class="perf-row"><span>Visites réalisées</span><div class="perf-bar"><i style="width:{{ performance.done|unlocalize }}%;background:#1f8a4c"></i></div><b>{{ performance.done }}%</b></div>
+          <div class="perf-row"><span>Ponctualité</span><div class="perf-bar"><i style="width:{{ performance.punctuality|unlocalize }}%;background:#2b6cb0"></i></div><b>{{ performance.punctuality }}%</b></div>
+          <div class="perf-row"><span>Satisfaction clients</span><div class="perf-bar"><i style="width:{{ performance.satisfaction|unlocalize }}%;background:#e8622a"></i></div><b>{{ performance.satisfaction }}%</b></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="head"><h2>{% icon "map" 14 %} Carte des opérations</h2><a class="chip-link" href="{% url 'dashboard:map' %}">Ouvrir la carte interactive</a></div>
+        <a href="{% url 'dashboard:map' %}" class="minimap">{{ map_svg }}</a>
+        <div class="body minimap-legend">
+          <span class="lg-item"><i class="lgm ok"></i> {{ map_counts.ok }} · confirmées</span>
+          <span class="lg-item"><i class="lgm late"></i> {{ map_counts.late }} · en retard</span>
+          <span class="lg-item"><i class="lgm prob"></i> {{ map_counts.problem }} · problème{{ map_counts.problem|pluralize }}</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="head"><h2><span class="hdot r"></span> INCIDENTS</h2><a class="chip-link" href="{% url 'dashboard:incidents' %}">Voir tout</a></div>
+        <div class="body">
+          <div class="inc-row"><span><span class="dot r"></span>Critiques</span><b>{{ incidents.critical }}</b></div>
+          <div class="inc-row"><span><span class="dot a"></span>Élevés</span><b>{{ incidents.high }}</b></div>
+          <div class="inc-row"><span><span class="dot" style="background:#e9c93b"></span>Moyens</span><b>{{ incidents.medium }}</b></div>
+          <div class="inc-row"><span><span class="dot" style="background:#8a97ab"></span>Faibles</span><b>{{ incidents.low }}</b></div>
+          <div class="inc-row total"><span>Total</span><b>{{ incidents.total }}</b></div>
+        </div>
+      </div>
+      {% if critical_incidents %}
+      <div class="card">
+        <div class="head"><h2><span class="hdot r"></span> CRITIQUE</h2></div>
+        <div class="body">{% for i in critical_incidents %}<div class="row-item"><div class="l">{{ i.title }}<small>{% if i.client %}{{ i.client.code }} · {% endif %}{{ i.created_at|date:"d M H:i" }}</small></div><span class="pill r">Critique</span></div>{% endfor %}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+{{ trend|json_script:"trenddata" }}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+document.querySelectorAll('#dashtabs .tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('#dashtabs .tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelector('.tabpane[data-p="'+t.dataset.t+'"]').classList.add('on');
+  });
+});
+(function(){
+  var el=document.getElementById('visitsTrend'); if(!el||typeof Chart==='undefined') return;
+  var T=JSON.parse(document.getElementById('trenddata').textContent);
+  new Chart(el,{type:'bar',data:{labels:T.labels,datasets:[
+    {label:'Planifiées',data:T.planned,backgroundColor:'#dbe3ef',borderRadius:4,barPercentage:0.9},
+    {type:'line',label:'Terminées',data:T.done,borderColor:'#1f8a4c',backgroundColor:'rgba(31,138,76,.12)',
+     borderWidth:2,tension:.35,fill:true,pointRadius:3,pointBackgroundColor:'#1f8a4c'}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true,font:{family:'Inter'}}}},
+    scales:{x:{grid:{display:false},ticks:{font:{family:'Inter',size:10}}},
+            y:{beginAtZero:true,grid:{color:'#eef1f5'},ticks:{precision:0,font:{family:'Inter'}}}}}});
+})();
+</script>
+{% endblock %}

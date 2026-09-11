@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load icons l10n %}
+{% block heading %}Nouveau soignant{% endblock %}
+{% block content %}
+<div class="card" style="max-width:680px">
+  <div class="head"><h2>{% icon "caregivers" 15 %} Ajouter un soignant (staff)</h2></div>
+  <div class="body">
+    <form method="post" class="docform">{% csrf_token %}
+      <div class="two"><div><label class="dl">Prénom *</label><input type="text" name="first_name" required></div>
+        <div><label class="dl">Nom</label><input type="text" name="last_name"></div></div>
+      <div class="two"><div><label class="dl">Téléphone</label><input type="text" name="phone" placeholder="+243 …"></div>
+        <div><label class="dl">Genre</label><select name="gender"><option value="U">Non précisé</option><option value="F">Femme</option><option value="M">Homme</option></select></div></div>
+      <label class="dl">Langues (séparées par des virgules)</label><input type="text" name="languages" placeholder="Français, Swahili">
+      {% if skills %}<label class="dl">Compétences</label>
+      <div class="chk-grid">{% for s in skills %}<label class="chk"><input type="checkbox" name="skills" value="{{ s.id }}"> {{ s.name }}</label>{% endfor %}</div>{% endif %}
+      <div class="two"><div><label class="dl">Fiabilité (%)</label><input type="number" name="reliability" value="90" min="0" max="100"></div>
+        <div><label class="dl">Ponctualité (%)</label><input type="number" name="punctuality" value="90" min="0" max="100"></div></div>
+      <div class="two"><div><label class="dl">Plafond horaire/sem</label><input type="number" name="weekly_hours_cap" value="{{ cfg.max_weekly_hours }}"></div>
+        <div><label class="dl">Taux horaire ({{ cfg.currency }}/h)</label><input type="number" step="0.5" name="pay_rate" value="{{ cfg.default_pay_rate|unlocalize }}"></div></div>
+
+      <div class="acct-box">
+        <b>Accès à l'application (optionnel)</b>
+        <p class="ai-disclaimer" style="margin:4px 0 10px">Renseignez un e-mail et un mot de passe pour créer un compte de connexion (le soignant pourra pointer et voir ses visites). Un numéro d'identification sera généré.</p>
+        <div class="two"><div><label class="dl">E-mail</label><input type="email" name="email"></div>
+          <div><label class="dl">Mot de passe</label><input type="text" name="password" placeholder="min. 8 caractères"></div></div>
+      </div>
+
+      <div class="docactions"><button class="btn btn-approve" type="submit">Créer le soignant</button><a class="btn btn-ghost" href="{% url 'dashboard:caregivers' %}">Annuler</a></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

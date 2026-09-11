@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load icons l10n %}
+{% block heading %}Nouveau client{% endblock %}
+{% block content %}
+<div class="card" style="max-width:680px">
+  <div class="head"><h2>{% icon "clients" 15 %} Ajouter un client</h2></div>
+  <div class="body">
+    <form method="post" class="docform">{% csrf_token %}
+      <div class="two"><div><label class="dl">Prénom *</label><input type="text" name="first_name" required></div>
+        <div><label class="dl">Nom</label><input type="text" name="last_name"></div></div>
+      <div class="two"><div><label class="dl">Type de soins</label><input type="text" name="care_type" placeholder="ex. Personnes âgées"></div>
+        <div><label class="dl">Niveau de risque</label><select name="risk_level"><option value="LOW">Faible</option><option value="MEDIUM">Moyen</option><option value="HIGH">Élevé</option><option value="CRITICAL">Critique</option></select></div></div>
+      <div class="two"><div><label class="dl">Langue préférée</label><input type="text" name="preferred_language" placeholder="Français, Swahili…"></div>
+        <div><label class="dl">Tarif facturé ({{ cfg.currency }}/h)</label><input type="number" step="0.5" name="bill_rate" value="{{ cfg.default_bill_rate|unlocalize }}"></div></div>
+      <label class="dl">Adresse</label><input type="text" name="address" placeholder="Quartier, ville">
+      <label class="dl">Environnement</label>
+      <div class="chk-grid"><label class="chk"><input type="checkbox" name="has_pets"> Présence d'animaux</label><label class="chk"><input type="checkbox" name="smoking_household"> Foyer fumeur</label></div>
+      <label class="dl">Notes</label><textarea name="notes" rows="2"></textarea>
+      <div class="docactions"><button class="btn btn-approve" type="submit">Créer le client</button><a class="btn btn-ghost" href="{% url 'dashboard:clients' %}">Annuler</a></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

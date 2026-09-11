@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Portail familial{% endblock %}
+{% block content %}
+<div class="info-banner"><div class="ai-head"><span class="brain">{% icon "clients" 16 %}</span><b>Portail familial</b></div>
+  <p>Ouvrez le portail que voit la famille de chaque client — statut en direct, bien-être, équipe de soins, historique.</p></div>
+<form class="search" method="get"><input name="q" value="{{ q }}" placeholder="Rechercher un client…"><button class="btn btn-ghost">Rechercher</button></form>
+<div class="card">
+  <table><thead><tr><th>Client</th><th>Nom</th><th>Compte famille</th><th></th></tr></thead><tbody>
+    {% for c in clients %}<tr>
+      <td><b>{{ c.code }}</b></td><td>{{ c.full_name }}</td>
+      <td>{% if c.family_user %}<span class="pill g">{{ c.family_user.get_full_name|default:c.family_user.username }}</span>{% else %}<span class="pill n">Aucun</span>{% endif %}</td>
+      <td style="text-align:right"><a class="btn btn-approve btn-sm" href="{% url 'dashboard:family_preview' c.id %}">{% icon "clients" 13 %} Ouvrir le portail</a></td></tr>
+    {% empty %}<tr><td colspan="4" class="empty">Aucun client.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

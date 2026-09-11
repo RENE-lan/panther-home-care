@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Vérification EVV — Panther Home Care{% endblock %}
+{% block heading %}Vérification EVV{% endblock %}
+{% block topbar_actions %}<a class="btn btn-approve btn-sm" href="{% url 'dashboard:hours_approval' %}">{% icon "check" 15 %} Approbation des heures</a>{% endblock %}
+{% block content %}
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Pointages récents</div><div class="val">{{ rows|length }}</div><div class="delta">Arrivées vérifiées</div></div>
+  <div class="kpi {% if exceptions %}alert{% endif %}"><div class="label">Exceptions</div><div class="val">{{ exceptions }}</div><div class="delta">Retard &gt; 15 min ou hors zone</div></div>
+  <div class="kpi {% if missed %}alert{% endif %}"><div class="label">Visites manquées</div><div class="val">{{ missed|length }}</div><div class="delta">Non pointées à échéance</div></div>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Pointages récents (EVV)</h2></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>Client</th><th>Arrivée</th><th>Ponctualité</th><th>GPS</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr {% if r.exception %}style="background:#fef6f6"{% endif %}>
+        <td><b>{{ r.visit.caregiver.code }}</b></td>
+        <td>{{ r.visit.client.code }}</td>
+        <td>{{ r.visit.check_in_at|date:"d M · H:i" }}</td>
+        <td>{% if r.late > 15 %}<span class="pill r">+{{ r.late }} min</span>{% elif r.late %}<span class="pill a">+{{ r.late }} min</span>{% else %}<span class="pill g">À l'heure</span>{% endif %}</td>
+        <td>{% if not r.has_gps %}<span class="pill n">Indisponible</span>{% elif r.gps_ok %}<span class="pill g">Vérifié{% if r.distance %} · {{ r.distance }} km{% endif %}</span>{% else %}<span class="pill r">Hors zone{% if r.distance %} · {{ r.distance }} km{% endif %}</span>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucun pointage pour le moment.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if missed %}
+<div class="card">
+  <div class="head"><h2><span class="hdot r"></span> Visites non pointées</h2></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>Client</th><th>Créneau</th></tr></thead>
+    <tbody>
+    {% for v in missed %}
+      <tr><td>{{ v.caregiver.code|default:"—" }}</td><td>{{ v.client.code }}</td><td>{{ v.scheduled_start|date:"d M H:i" }}–{{ v.scheduled_end|time:"H:i" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

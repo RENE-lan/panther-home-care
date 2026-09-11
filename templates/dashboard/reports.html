@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Rapports{% endblock %}
+{% block topbar_actions %}
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+{% if user.is_staff or user.is_coordinator %}
+<h3 class="sec-title">Centre de rapports</h3>
+<div class="report-grid">
+  <a class="report-card" href="{% url 'dashboard:brief_pdf' %}?download" target="_blank">
+    <span class="rc-ic">{% icon "ai" 18 %}</span>
+    <div><b>Brief du jour</b><small>Résumé opérationnel IA · PDF</small></div>
+    <span class="rc-dl">{% icon "download" 16 %}</span></a>
+  <a class="report-card" href="{% url 'dashboard:weekly_report_pdf' %}?download" target="_blank">
+    <span class="rc-ic">{% icon "reports" 18 %}</span>
+    <div><b>Rapport hebdomadaire</b><small>Opérations de la semaine · PDF</small></div>
+    <span class="rc-dl">{% icon "download" 16 %}</span></a>
+  <a class="report-card" href="{% url 'dashboard:timesheet_csv' %}">
+    <span class="rc-ic">{% icon "clock" 18 %}</span>
+    <div><b>Feuilles de temps</b><small>Heures de l'équipe · CSV</small></div>
+    <span class="rc-dl">{% icon "download" 16 %}</span></a>
+  <a class="report-card" href="{% url 'dashboard:accounting_csv' %}">
+    <span class="rc-ic">{% icon "dollar" 18 %}</span>
+    <div><b>Comptabilité</b><small>Factures (format compta) · CSV</small></div>
+    <span class="rc-dl">{% icon "download" 16 %}</span></a>
+  <a class="report-card" href="{% url 'dashboard:compliance_csv' %}">
+    <span class="rc-ic">{% icon "award" 18 %}</span>
+    <div><b>Conformité</b><small>Certifications &amp; échéances · CSV</small></div>
+    <span class="rc-dl">{% icon "download" 16 %}</span></a>
+</div>
+{% endif %}
+
+<h3 class="sec-title">Rapports de soins</h3>
+<div class="filterbar">
+  <a class="tab {% if not flagged_only %}on{% endif %}" href="{% url 'dashboard:reports' %}">Tous les rapports</a>
+  <a class="tab {% if flagged_only %}on{% endif %}" href="{% url 'dashboard:reports' %}?flagged=1">
+    <span class="hdot a"></span> Signalés par l'IA
+    {% if flagged_count %}<span class="count">{{ flagged_count }}</span>{% endif %}
+  </a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Date</th><th>Client</th><th>Soignant</th><th>Humeur</th><th>Tension</th><th>IA</th><th></th></tr></thead>
+    <tbody>
+    {% for r in reports %}
+      <tr>
+        <td>{{ r.created_at|date:"d M Y · H:i" }}</td>
+        <td><b>{{ r.visit.client.code }}</b></td>
+        <td>{{ r.caregiver.code|default:"—" }}</td>
+        <td>{{ r.get_mood_display }}</td>
+        <td>{{ r.blood_pressure|default:"—" }}</td>
+        <td>{% if r.ai_flagged %}<span class="pill r">Préoccupation</span>{% else %}<span class="pill g">RAS</span>{% endif %}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:report_detail' r.id %}">Ouvrir</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:report_pdf' r.id %}?download" target="_blank">{% icon "download" 13 %} PDF</a>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="empty">Aucun rapport.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

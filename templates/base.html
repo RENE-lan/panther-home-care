@@ -1,0 +1,148 @@
+{% load static icons %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Panther Home Care{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;750&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'panther.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <button class="drawer-close" id="navClose" aria-label="Fermer le menu">{% icon "close" 22 %}</button>
+    <div class="brand">
+      <div class="logo-tile"><img src="{% static 'img/panther-mark.png' %}" alt="Panther Home Care"></div>
+      <div><b>PANTHER</b><span>HOME CARE</span></div>
+    </div>
+    <nav class="nav">
+      {% if user.is_family or user.linked_clients.all %}
+      <div class="cat">Espace famille</div>
+      <a href="{% url 'dashboard:family_home' %}" class="{% if request.resolver_match.url_name == 'family_home' %}active{% endif %}"><span class="ic">{% icon "dashboard" %}</span> Accueil</a>
+      <a href="{% url 'dashboard:family_schedule' %}" class="{% if request.resolver_match.url_name == 'family_schedule' %}active{% endif %}"><span class="ic">{% icon "schedule" %}</span> Planning</a>
+      <a href="{% url 'dashboard:family_reports' %}" class="{% if request.resolver_match.url_name == 'family_reports' %}active{% endif %}"><span class="ic">{% icon "reports" %}</span> Historique de soins</a>
+      <a href="{% url 'dashboard:family_team' %}" class="{% if request.resolver_match.url_name == 'family_team' %}active{% endif %}"><span class="ic">{% icon "caregivers" %}</span> Équipe de soins</a>
+      <a href="{% url 'dashboard:family_documents' %}" class="{% if request.resolver_match.url_name == 'family_documents' %}active{% endif %}"><span class="ic">{% icon "reports" %}</span> Documents</a>
+      <a href="{% url 'dashboard:family_messages' %}" class="{% if request.resolver_match.url_name == 'family_messages' %}active{% endif %}"><span class="ic">{% icon "inbox" %}</span> Messages</a>
+      <a href="{% url 'dashboard:family_invoices' %}" class="{% if request.resolver_match.url_name == 'family_invoices' %}active{% endif %}"><span class="ic">{% icon "reports" %}</span> Factures</a>
+      {% else %}
+      {% with un=request.resolver_match.url_name %}
+      <div class="cat">Opérations</div>
+      <a href="{% url 'dashboard:home' %}" class="{% if un == 'home' %}active{% endif %}"><span class="ic">{% icon "dashboard" %}</span> Tableau de bord</a>
+      {% if user.can_ops %}<a href="{% url 'dashboard:live' %}" class="{% if un == 'live' %}active{% endif %}"><span class="ic">{% icon "radio" %}</span> Temps réel</a>
+      <a href="{% url 'dashboard:copilot' %}" class="{% if un == 'copilot' %}active{% endif %}"><span class="ic">{% icon "ai" %}</span> Copilote IA</a>{% endif %}
+      <a href="{% url 'dashboard:timeclock' %}" class="{% if un == 'timeclock' or un == 'attendance' %}active{% endif %}"><span class="ic">{% icon "clock" %}</span> Pointeuse</a>
+
+      {% if user.can_care or user.can_finance %}
+      <div class="cat">Clients &amp; soins</div>
+      <a href="{% url 'dashboard:clients' %}" class="{% if 'client' in un %}active{% endif %}"><span class="ic">{% icon "clients" %}</span> Clients</a>
+      <a href="{% url 'dashboard:family_portals' %}" class="{% if un == 'family_portals' %}active{% endif %}"><span class="ic">{% icon "clients" %}</span> Portail familial</a>
+      {% if user.can_care %}<a href="{% url 'dashboard:clinical' %}" class="{% if 'concern' in un or un == 'clinical' %}active{% endif %}"><span class="ic">{% icon "award" %}</span> Suivi clinique</a>
+      <a href="{% url 'dashboard:insights' %}" class="{% if un == 'insights' %}active{% endif %}"><span class="ic">{% icon "ai" %}</span> Care Insights</a>
+      <a href="{% url 'dashboard:incidents' %}" class="{% if un == 'incidents' %}active{% endif %}"><span class="ic">{% icon "incidents" %}</span> Incidents</a>{% endif %}
+      {% endif %}
+
+      {% if user.can_ops %}
+      <div class="cat">Soignants</div>
+      <a href="{% url 'dashboard:caregivers' %}" class="{% if 'caregiver' in un %}active{% endif %}"><span class="ic">{% icon "caregivers" %}</span> Soignants</a>
+      <a href="{% url 'dashboard:personnel' %}" class="{% if un == 'personnel' %}active{% endif %}"><span class="ic">{% icon "clients" %}</span> Personnel</a>
+      <a href="{% url 'dashboard:recruitment' %}" class="{% if un == 'recruitment' %}active{% endif %}"><span class="ic">{% icon "recruitment" %}</span> Recrutement &amp; Formation</a>
+      <a href="{% url 'dashboard:compliance' %}" class="{% if un == 'compliance' %}active{% endif %}"><span class="ic">{% icon "award" %}</span> Conformité</a>
+      {% endif %}
+
+      {% if user.can_schedule %}
+      <div class="cat">Planification &amp; EVV</div>
+      <a href="{% url 'dashboard:schedule' %}" class="{% if un == 'schedule' %}active{% endif %}"><span class="ic">{% icon "schedule" %}</span> Planification</a>
+      <a href="{% url 'dashboard:recurring' %}" class="{% if un == 'recurring' %}active{% endif %}"><span class="ic">{% icon "repeat" %}</span> Récurrence</a>
+      <a href="{% url 'dashboard:visit_requests' %}" class="{% if un == 'visit_requests' %}active{% endif %}"><span class="ic">{% icon "inbox" %}</span> Demandes de visites</a>
+      <a href="{% url 'dashboard:map' %}" class="{% if un == 'map' %}active{% endif %}"><span class="ic">{% icon "map" %}</span> Carte des opérations</a>
+      <a href="{% url 'dashboard:evv_exceptions' %}" class="{% if un == 'evv_exceptions' %}active{% endif %}"><span class="ic">{% icon "shield" %}</span> Vérification EVV</a>
+      {% endif %}
+
+      {% if user.caregiver_profile %}
+      <div class="cat">Mon espace</div>
+      <a href="{% url 'dashboard:my_visits' %}" class="{% if un == 'my_visits' %}active{% endif %}"><span class="ic">{% icon "visits" %}</span> Mes visites</a>
+      <a href="{% url 'dashboard:open_visits' %}" class="{% if un == 'open_visits' %}active{% endif %}"><span class="ic">{% icon "calendarplus" %}</span> Visites ouvertes</a>
+      <a href="{% url 'dashboard:my_requests' %}" class="{% if un == 'my_requests' %}active{% endif %}"><span class="ic">{% icon "inbox" %}</span> Mes demandes</a>
+      {% endif %}
+
+      {% if user.can_finance or user.can_analytics %}
+      <div class="cat">Finance &amp; pilotage</div>
+      {% if user.can_finance %}<a href="{% url 'dashboard:billing' %}" class="{% if un == 'billing' %}active{% endif %}"><span class="ic">{% icon "dollar" %}</span> Facturation &amp; paie</a>
+      <a href="{% url 'dashboard:timesheets' %}" class="{% if un == 'timesheets' %}active{% endif %}"><span class="ic">{% icon "clock" %}</span> Feuilles de temps</a>{% endif %}
+      <a href="{% url 'dashboard:reports' %}" class="{% if 'report' in un %}active{% endif %}"><span class="ic">{% icon "reports" %}</span> Rapports</a>
+      {% if user.can_analytics %}<a href="{% url 'dashboard:analytics' %}" class="{% if un == 'analytics' %}active{% endif %}"><span class="ic">{% icon "analytics" %}</span> Analytique &amp; IA</a>{% endif %}
+      {% endif %}
+
+      {% if user.can_crm %}
+      <div class="cat">Croissance</div>
+      <a href="{% url 'dashboard:leads' %}" class="{% if 'lead' in un %}active{% endif %}"><span class="ic">{% icon "megaphone" %}</span> Prospects &amp; CRM</a>
+      {% endif %}
+
+      {% if user.can_ops or user.can_admin %}
+      <div class="cat">Gestion</div>
+      {% if user.can_ops %}<a href="{% url 'dashboard:communications' %}" class="{% if un == 'communications' %}active{% endif %}"><span class="ic">{% icon "bell" %}</span> Communications</a>{% endif %}
+      {% if user.can_admin %}<a href="{% url 'dashboard:automations' %}" class="{% if un == 'automations' %}active{% endif %}"><span class="ic">{% icon "repeat" %}</span> Automatisations</a>
+      <a href="{% url 'dashboard:users' %}" class="{% if un == 'users' or un == 'user_new' %}active{% endif %}"><span class="ic">{% icon "clients" %}</span> Utilisateurs &amp; accès</a>{% endif %}
+      {% endif %}
+
+      <div class="cat">Compte</div>
+      <a href="{% url 'dashboard:settings' %}" class="{% if un == 'settings' %}active{% endif %}"><span class="ic">{% icon "settings" %}</span> Paramètres</a>
+      {% endwith %}
+      {% endif %}
+    </nav>
+    <div class="side-foot">Lubumbashi, RDC · POPIA / Loi 18/035</div>
+    <form class="drawer-logout" method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button type="submit">{% icon "logout" 16 %} Déconnexion</button></form>
+  </aside>
+  <div class="nav-backdrop" id="navBackdrop"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="navToggle" aria-label="Menu">{% icon "menu" 22 %}</button>
+        <span class="topbar-logo"><img src="{% static 'img/panther-mark.png' %}" alt="Panther"></span>
+        <h1>{% block heading %}Tableau de bord{% endblock %}</h1>
+      </div>
+      <div class="top-right">
+        <form class="topsearch" method="get" action="{% url 'dashboard:clients' %}">
+          <span class="si">{% icon "search" 15 %}</span>
+          <input type="text" name="q" placeholder="Rechercher un client…" value="{{ request.GET.q }}">
+        </form>
+        <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+        <a class="bell" href="{% url 'dashboard:notifications' %}" title="Notifications">{% icon "bell" 19 %}{% if unread_alert_count %}<span class="badge">{{ unread_alert_count }}</span>{% endif %}</a>
+        <div class="whoami">
+          <div class="av">{{ user.first_name|first|default:user.username|first|upper }}</div>
+          <div class="whoami-text">Bonjour, {{ user.first_name|default:user.username }}<small>{{ user.get_role_display }}</small></div>
+        </div>
+        <form method="post" action="{% url 'account_logout' %}" class="logout-form">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button></form>
+      </div>
+    </header>
+    <main class="content">
+      {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% block body_extra %}{% endblock %}
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var closeBtn = document.getElementById('navClose');
+  var sidebar = document.querySelector('.sidebar');
+  var backdrop = document.getElementById('navBackdrop');
+  function open() { sidebar.classList.add('open'); backdrop.classList.add('show'); document.body.style.overflow = 'hidden'; }
+  function close() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); document.body.style.overflow = ''; }
+  function toggleNav() { sidebar.classList.contains('open') ? close() : open(); }
+  if (toggle) toggle.addEventListener('click', toggleNav);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (backdrop) backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  document.querySelectorAll('.sidebar .nav a').forEach(function (a) { a.addEventListener('click', close); });
+})();
+</script>
+</body>
+</html>

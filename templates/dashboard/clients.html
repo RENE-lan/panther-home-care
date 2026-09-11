@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Clients{% endblock %}
+{% block topbar_actions %}{% if user.can_care or user.can_finance %}<a class="btn btn-approve btn-sm" href="{% url 'dashboard:client_new' %}">{% icon "clients" 15 %} Nouveau client</a>{% endif %}{% endblock %}
+{% block content %}
+<form class="search" method="get"><input name="q" value="{{ q }}" placeholder="Rechercher un client…"><button class="btn btn-ghost">Rechercher</button></form>
+<div class="card">
+  <table>
+    <thead><tr><th>Code</th><th>Nom</th><th>Type de soins</th><th>Risque</th><th>Paiement</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a class="lnk" href="{% url 'dashboard:client_360' r.c.id %}"><b>{{ r.c.code }}</b></a></td>
+        <td><a class="lnk" href="{% url 'dashboard:client_360' r.c.id %}">{{ r.c.full_name }}</a></td>
+        <td>{{ r.c.care_type|default:"—" }}</td>
+        <td><span class="risk {{ r.c.risk_level }}">{{ r.c.get_risk_level_display }}</span></td>
+        <td>{% if r.pay == 'paid' %}<span class="paystat paid">● Payé</span>{% elif r.pay == 'unpaid' %}<span class="paystat unpaid">● Impayé</span>{% else %}<span style="color:var(--muted)">—</span>{% endif %}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:client_360' r.c.id %}">Ouvrir</a>
+          {% if user.can_finance %}<a class="btn btn-approve btn-sm" href="{% url 'dashboard:invoice_new' %}?client={{ r.c.id }}">{% icon "dollar" 13 %} Facture</a>{% endif %}
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="empty">Aucun client.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

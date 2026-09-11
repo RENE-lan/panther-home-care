@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Rapport — {{ report.visit.client.code }}{% endblock %}
+{% block topbar_actions %}
+  <a class="btn btn-approve btn-sm" href="{% url 'dashboard:report_pdf' report.id %}?download" target="_blank">{% icon "download" 15 %} Rapport PDF</a>
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="head">
+    <h2>{{ report.visit.client.code }} — {{ report.visit.client.full_name }}</h2>
+    <span class="pill n">{{ report.created_at|date:"d M Y · H:i" }}</span>
+  </div>
+  <div class="body two-col">
+    <dl class="detail-list">
+      <dt>Soignant</dt><dd>{{ report.caregiver.full_name|default:"—" }}</dd>
+      <dt>Humeur</dt><dd>{{ report.get_mood_display }}</dd>
+      <dt>Tension artérielle</dt><dd>{{ report.blood_pressure|default:"—" }}</dd>
+      <dt>Pouls</dt><dd>{{ report.pulse|default:"—" }}</dd>
+    </dl>
+    <dl class="detail-list">
+      <dt>Créneau</dt><dd>{{ report.visit.scheduled_start|date:"d M Y H:i" }} – {{ report.visit.scheduled_end|time:"H:i" }}</dd>
+      <dt>Client</dt><dd><a href="{% url 'dashboard:client_360' report.visit.client.id %}">Voir le dossier 360°</a></dd>
+    </dl>
+  </div>
+</div>
+
+{% if report.tasks_completed %}
+<div class="card">
+  <div class="head"><h2>Tâches réalisées</h2></div>
+  <div class="body">
+    {% for t in report.tasks_completed %}
+      <div class="brief-line"><span class="dot g"></span>{{ t }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if report.notes %}
+<div class="card">
+  <div class="head"><h2>Notes du soignant</h2></div>
+  <div class="body"><p style="margin:0;white-space:pre-wrap">{{ report.notes }}</p></div>
+</div>
+{% endif %}
+
+{% if report.ai_flagged %}
+<div class="card">
+  <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>ANALYSE IA</h2></div><span class="chip">IA</span></div>
+  <div class="body">
+    <div class="uncovered-banner">
+      <div class="t">{% icon "warning" 13 %} Préoccupation potentielle détectée</div>
+      <div class="d">{{ report.ai_concern }}</div>
+    </div>
+    <p class="ai-disclaimer">Signalement automatique à des fins de revue humaine. Ne constitue pas un diagnostic médical.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

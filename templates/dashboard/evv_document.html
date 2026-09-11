@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Documenter la visite — Panther Home Care{% endblock %}
+{% block heading %}Terminer &amp; documenter{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <div class="head"><h2>{{ visit.client.first_name }} · {{ visit.scheduled_start|date:"d M" }} {{ visit.scheduled_start|time:"H:i" }}</h2></div>
+  <div class="body">
+    <form method="post" class="docform">
+      {% csrf_token %}
+      <label class="dl">Tâches réalisées</label>
+      <div class="chk-grid">
+        {% for t in plan_tasks %}
+        <label class="chk"><input type="checkbox" name="tasks" value="{{ t }}" checked> {{ t }}</label>
+        {% endfor %}
+      </div>
+
+      <label class="dl">Humeur du client</label>
+      <select name="mood">
+        {% for val, lbl in moods %}<option value="{{ val }}" {% if val == 3 %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+      </select>
+
+      <div class="two">
+        <div><label class="dl">Tension artérielle</label><input type="text" name="blood_pressure" placeholder="120/80"></div>
+        <div><label class="dl">Pouls</label><input type="text" name="pulse" placeholder="72 bpm"></div>
+      </div>
+
+      <label class="dl">Notes / observations</label>
+      <textarea name="notes" rows="4" placeholder="Décrivez le déroulé de la visite…"></textarea>
+
+      <label class="dl">Signature — confirmez la visite</label>
+      <div class="sigpad-wrap">
+        <canvas id="sigpad" class="sigpad" width="560" height="150"></canvas>
+        <button type="button" class="btn btn-ghost btn-sm sig-clear" id="sigClear">Effacer</button>
+      </div>
+      <input type="hidden" name="signature" id="sigData">
+      <input type="text" name="signed_by" placeholder="Votre nom (signataire)" class="sig-name">
+
+      <div class="docactions">
+        <button class="btn btn-approve" type="submit">{% icon "check" 15 %} Signer, confirmer &amp; terminer</button>
+        <a class="btn btn-ghost" href="{% url 'dashboard:my_visits' %}">Annuler</a>
+      </div>
+      <p class="ai-disclaimer">Vos observations sont analysées par l'IA pour signaler d'éventuelles préoccupations (jamais un diagnostic).</p>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+(function(){
+  var c=document.getElementById('sigpad'); if(!c) return;
+  var ctx=c.getContext('2d'); ctx.strokeStyle='#0e1c38'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.lineCap='round';
+  var drawing=false, has=false;
+  function pos(e){var r=c.getBoundingClientRect(); var t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(c.width/r.width), y:(t.clientY-r.top)*(c.height/r.height)};}
+  function start(e){drawing=true; var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault();}
+  function move(e){if(!drawing)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); has=true; e.preventDefault();}
+  function end(){if(drawing){drawing=false; document.getElementById('sigData').value = has ? c.toDataURL('image/png') : '';}}
+  c.addEventListener('mousedown',start); c.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  c.addEventListener('touchstart',start); c.addEventListener('touchmove',move); c.addEventListener('touchend',end);
+  document.getElementById('sigClear').addEventListener('click',function(){ctx.clearRect(0,0,c.width,c.height); has=false; document.getElementById('sigData').value='';});
+})();
+</script>
+{% endblock %}

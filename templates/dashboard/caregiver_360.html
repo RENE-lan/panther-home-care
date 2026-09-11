@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}{{ caregiver.code }} — {{ caregiver.full_name }}{% endblock %}
+{% block content %}
+<div class="cg-profile-head">
+  <div class="cg-avatar">{{ caregiver.first_name|first }}{{ caregiver.last_name|first }}</div>
+  <div>
+    <h2 style="margin:0">{{ caregiver.full_name }}</h2>
+    <div class="cg-sub">{{ caregiver.code }} · {{ caregiver.phone|default:"—" }} · {{ caregiver.languages|default:"—" }}
+      {% if avg_eval %}· <b>Évaluation {{ avg_eval }}%</b>{% endif %}</div>
+  </div>
+  <span class="pill {% if caregiver.active %}g{% else %}n{% endif %}" style="margin-left:auto">{% if caregiver.active %}Actif{% else %}Inactif{% endif %}</span>
+</div>
+
+<div class="tabbar" id="cgtabs">
+  <button class="tab on" data-t="overview">Vue d'ensemble</button>
+  <button class="tab" data-t="availability">Disponibilité</button>
+  <button class="tab" data-t="schedule">Planning</button>
+  <button class="tab" data-t="clients">Clients</button>
+  <button class="tab" data-t="skills">Compétences</button>
+  <button class="tab" data-t="documents">Documents</button>
+  <button class="tab" data-t="training">Formation</button>
+  <button class="tab" data-t="compliance">Conformité</button>
+  <button class="tab" data-t="evv">EVV</button>
+  <button class="tab" data-t="timesheets">Heures</button>
+  <button class="tab" data-t="performance">Performance</button>
+  <button class="tab" data-t="incidents">Incidents</button>
+  <button class="tab" data-t="messages">Messages</button>
+</div>
+
+<div class="tabpane on" data-p="overview">
+  <div class="two-col">
+    <div class="card"><div class="head"><h2>Profil</h2></div><div class="body">
+      <dl class="detail-list">
+        <dt>Fiabilité</dt><dd>{{ caregiver.reliability_score }}%</dd>
+        <dt>Ponctualité</dt><dd>{{ caregiver.punctuality_score }}%</dd>
+        <dt>Plafond horaire</dt><dd>{{ caregiver.weekly_hours_cap }} h / sem</dd>
+        <dt>Taux horaire</dt><dd>{{ caregiver.pay_rate }} $/h</dd>
+        <dt>Genre</dt><dd>{{ caregiver.get_gender_display }}</dd>
+        {% if caregiver.user %}<dt>N° identification</dt><dd>{{ caregiver.user.id_number|default:"—" }}</dd>
+        <dt>Téléphone (compte)</dt><dd>{{ caregiver.user.phone|default:caregiver.phone|default:"—" }}</dd>{% endif %}
+      </dl></div></div>
+    <div class="card"><div class="head"><h2>En bref</h2></div><div class="body">
+      <div class="inc-row"><span>Clients servis</span><b>{{ clients_served|length }}</b></div>
+      <div class="inc-row"><span>Documents</span><b>{{ documents|length }}</b></div>
+      <div class="inc-row"><span>Certifications</span><b>{{ certifications|length }}</b></div>
+      <div class="inc-row"><span>Incidents liés</span><b>{{ incidents|length }}</b></div>
+      <div class="inc-row"><span>Évaluations</span><b>{{ evaluations|length }}</b></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="tabpane" data-p="availability">
+  <div class="card"><div class="head"><h2>Disponibilité hebdomadaire</h2></div><div class="body">
+    {% for a in availability %}<div class="inc-row"><span>{{ a.day }}</span><b>{{ a.start|time:"H:i" }} – {{ a.end|time:"H:i" }}</b></div>
+    {% empty %}<p class="empty">Aucune disponibilité renseignée.</p>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="schedule">
+  <div class="two-col">
+    <div class="card"><div class="head"><h2>Prochaines visites</h2></div><div class="body">
+      {% for v in upcoming %}<div class="inc-row"><span>{{ v.client.code }} · {{ v.scheduled_start|date:"d M H:i" }}</span><span class="pill {% if v.is_uncovered %}a{% else %}n{% endif %}">{{ v.get_status_display }}</span></div>
+      {% empty %}<p class="empty">Aucune visite à venir.</p>{% endfor %}</div></div>
+    <div class="card"><div class="head"><h2>Visites récentes</h2></div><div class="body">
+      {% for v in recent %}<div class="inc-row"><span>{{ v.client.code }} · {{ v.scheduled_start|date:"d M" }}</span><span class="pill g">Terminée</span></div>
+      {% empty %}<p class="empty">Aucune.</p>{% endfor %}</div></div>
+  </div>
+</div>
+
+<div class="tabpane" data-p="clients">
+  <div class="card"><div class="head"><h2>Clients accompagnés</h2></div><div class="body">
+    {% for c in clients_served %}<div class="inc-row"><span>{{ c.client__code }} — {{ c.client__first_name }}</span><b>{{ c.n }} visite{{ c.n|pluralize }}</b></div>
+    {% empty %}<p class="empty">Aucun client encore.</p>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="skills">
+  <div class="card"><div class="head"><h2>Compétences &amp; attributs</h2></div><div class="body">
+    <div class="chip-row">{% for s in caregiver.skills.all %}<span class="ov-reason">{{ s.name }}</span>{% empty %}<p class="empty">Aucune compétence.</p>{% endfor %}</div>
+    <dl class="detail-list" style="margin-top:14px">
+      <dt>À l'aise avec animaux</dt><dd>{% if caregiver.comfortable_with_pets %}Oui{% else %}Non{% endif %}</dd>
+      <dt>À l'aise foyer fumeur</dt><dd>{% if caregiver.comfortable_with_smoking %}Oui{% else %}Non{% endif %}</dd>
+    </dl>
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="documents">
+  <div class="card"><div class="head"><h2>Documents</h2></div>
+    <table><thead><tr><th>Document</th><th>Type</th><th>Référence</th><th>Expire</th><th>Statut</th></tr></thead><tbody>
+      {% for d in documents %}<tr><td><b>{{ d.name }}</b></td><td>{{ d.get_doc_type_display }}</td><td>{{ d.reference|default:"—" }}</td><td>{{ d.expires_on|date:"d M Y"|default:"—" }}</td><td><span class="pill {% if d.status == 'VALID' %}g{% elif d.status == 'EXPIRED' %}r{% else %}a{% endif %}">{{ d.get_status_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="5" class="empty">Aucun document.</td></tr>{% endfor %}
+    </tbody></table>
+    {% if user.is_staff or user.is_coordinator %}<div class="body" style="border-top:1px solid var(--line)">
+      <form method="post" class="docform"><input type="hidden" name="action" value="document">{% csrf_token %}
+        <div class="two"><div><label class="dl">Nom</label><input type="text" name="name" required></div>
+          <div><label class="dl">Type</label><select name="doc_type"><option value="ID">Pièce d'identité</option><option value="CONTRACT">Contrat</option><option value="REFERENCE">Référence</option><option value="CERTIFICATE">Certificat</option><option value="MEDICAL">Visite médicale</option><option value="OTHER">Autre</option></select></div></div>
+        <div class="two"><div><label class="dl">Référence</label><input type="text" name="reference"></div>
+          <div><label class="dl">Expire le</label><input type="date" name="expires_on"></div></div>
+        <div class="docactions"><button class="btn btn-approve btn-sm" type="submit">Ajouter</button></div>
+      </form></div>{% endif %}
+  </div>
+</div>
+
+<div class="tabpane" data-p="training">
+  <div class="card"><div class="head"><h2>Formations &amp; certificats obtenus</h2></div><div class="body">
+    {% for c in certifications %}<div class="inc-row"><span><b>{{ c.name }}</b>{% if c.issued_on %}<small style="display:block;color:var(--muted)">Obtenu le {{ c.issued_on|date:"d M Y" }}</small>{% endif %}</span><span class="pill {% if c.is_expired %}r{% else %}g{% endif %}">{% if c.is_expired %}Expiré{% else %}Acquis{% endif %}</span></div>
+    {% empty %}<p class="empty">Aucune formation enregistrée.</p>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="compliance">
+  <div class="card"><div class="head"><h2>Conformité — certifications</h2></div><div class="body">
+    {% for c in certifications %}<div class="inc-row"><span>{{ c.name }}<small style="display:block;color:var(--muted)">Expire : {{ c.expires_on|date:"d M Y"|default:"—" }}</small></span><span class="pill {% if c.is_expired %}r{% else %}g{% endif %}">{% if c.is_expired %}Expirée{% else %}Valide{% endif %}</span></div>
+    {% empty %}<p class="empty">Aucune certification.</p>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="evv">
+  <div class="card"><div class="head"><h2>Pointages EVV récents</h2></div>
+    <table><thead><tr><th>Client</th><th>Arrivée</th><th>Ponctualité</th><th>GPS</th></tr></thead><tbody>
+      {% for r in evv_rows %}<tr><td>{{ r.visit.client.code }}</td><td>{{ r.visit.check_in_at|date:"d M · H:i" }}</td><td>{% if r.late > 15 %}<span class="pill r">+{{ r.late }} min</span>{% elif r.late %}<span class="pill a">+{{ r.late }} min</span>{% else %}<span class="pill g">À l'heure</span>{% endif %}</td><td>{% if r.gps_ok %}<span class="pill g">Vérifié</span>{% elif r.has_gps %}<span class="pill r">Hors zone</span>{% else %}<span class="pill n">—</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="4" class="empty">Aucun pointage.</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+</div>
+
+<div class="tabpane" data-p="timesheets">
+  <div class="card"><div class="head"><h2>Heures — 4 dernières semaines</h2></div><div class="body">
+    {% for t in timesheets %}<div class="inc-row"><span>{{ t.label }}</span><b>{{ t.hours }} h</b></div>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="performance">
+  <div class="card"><div class="head"><h2>Évaluations {% if avg_eval %}· moyenne {{ avg_eval }}%{% endif %}</h2></div><div class="body" style="padding:0">
+    {% for e in evaluations %}<div class="inc-row" style="padding:12px 16px"><div><b>{{ e.period }}</b> — {{ e.score }}%<small style="display:block;color:var(--muted)">Ponct. {{ e.punctuality }}/5 · Qualité {{ e.care_quality }}/5 · Comm. {{ e.communication }}/5 · Prof. {{ e.professionalism }}/5{% if e.notes %} — {{ e.notes }}{% endif %}</small></div><span class="pill {% if e.score >= 80 %}g{% elif e.score >= 60 %}a{% else %}r{% endif %}">{{ e.score }}%</span></div>
+    {% empty %}<p class="empty" style="padding:20px">Aucune évaluation.</p>{% endfor %}</div>
+    {% if user.is_staff or user.is_coordinator %}<div class="body" style="border-top:1px solid var(--line)">
+      <form method="post" class="docform"><input type="hidden" name="action" value="evaluate">{% csrf_token %}
+        <label class="dl">Période</label><input type="text" name="period" placeholder="T3 2026" required>
+        <div class="two"><div><label class="dl">Ponctualité (1-5)</label><input type="number" name="punctuality" value="4" min="1" max="5"></div><div><label class="dl">Qualité (1-5)</label><input type="number" name="care_quality" value="4" min="1" max="5"></div></div>
+        <div class="two"><div><label class="dl">Communication (1-5)</label><input type="number" name="communication" value="4" min="1" max="5"></div><div><label class="dl">Professionnalisme (1-5)</label><input type="number" name="professionalism" value="4" min="1" max="5"></div></div>
+        <label class="dl">Notes</label><textarea name="notes" rows="2"></textarea>
+        <div class="docactions"><button class="btn btn-approve btn-sm" type="submit">Enregistrer</button></div>
+      </form></div>{% endif %}
+  </div>
+</div>
+
+<div class="tabpane" data-p="incidents">
+  <div class="card"><div class="head"><h2>Incidents liés</h2></div><div class="body">
+    {% for i in incidents %}<div class="inc-row"><span><b>{{ i.title }}</b><small style="display:block;color:var(--muted)">{{ i.client.code|default:"—" }} · {{ i.created_at|date:"d M Y" }}</small></span><span class="pill {% if i.severity == 'CRITICAL' %}r{% else %}a{% endif %}">{{ i.get_severity_display }}</span></div>
+    {% empty %}<p class="empty">Aucun incident lié. 👍</p>{% endfor %}
+  </div></div>
+</div>
+
+<div class="tabpane" data-p="messages">
+  <div class="card"><div class="head"><h2>Messages</h2></div><div class="body">
+    {% for m in cg_messages %}<div class="inc-row"><div><b>{{ m.title }}</b><small style="display:block;color:var(--muted)">{{ m.body }}</small></div><small style="color:var(--muted)">{{ m.created_at|date:"d M" }}</small></div>
+    {% empty %}<p class="empty">Aucun message.</p>{% endfor %}</div>
+    {% if user.is_staff or user.is_coordinator %}<div class="body" style="border-top:1px solid var(--line)">
+      <form method="post" class="docform"><input type="hidden" name="action" value="message">{% csrf_token %}
+        <label class="dl">Sujet</label><input type="text" name="subject" placeholder="Sujet">
+        <label class="dl">Message</label><textarea name="body" rows="3" required></textarea>
+        <div class="docactions"><button class="btn btn-approve btn-sm" type="submit">Envoyer au soignant</button></div>
+      </form></div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+document.querySelectorAll('#cgtabs .tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('#cgtabs .tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelector('.tabpane[data-p="'+t.dataset.t+'"]').classList.add('on');
+    window.scrollTo(0,0);
+  });
+});
+</script>
+{% endblock %}

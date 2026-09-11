@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Copilote IA — Panther Home Care{% endblock %}
+{% block heading %}Copilote IA{% endblock %}
+{% block topbar_actions %}
+  <form method="post" action="{% url 'dashboard:autofill_shifts' %}" style="margin:0"
+        onsubmit="return confirm('Laisser l\'IA affecter automatiquement les meilleurs soignants à toutes les visites non couvertes ?');">
+    {% csrf_token %}<button class="btn btn-approve btn-sm" type="submit">{% icon "ai" 15 %} Auto-remplir les visites</button>
+  </form>
+{% endblock %}
+{% block content %}
+<div class="copilot">
+  <div class="cop-thread" id="thread">
+    <div class="cop-msg bot"><div class="cop-body">Bonjour {{ user.first_name|default:user.username }} 👋 Je suis votre copilote. Posez-moi une question sur les opérations — retards, visites non couvertes, conformité, incidents, heures des soignants…</div></div>
+  </div>
+  <div class="cop-suggest">
+    <button class="cop-chip" data-q="Qui est en retard aujourd'hui ?">Qui est en retard ?</button>
+    <button class="cop-chip" data-q="Combien de visites non couvertes ?">Visites non couvertes</button>
+    <button class="cop-chip" data-q="Quelles certifications expirent bientôt ?">Certifications</button>
+    <button class="cop-chip" data-q="Quel est l'état des opérations aujourd'hui ?">État du jour</button>
+    <button class="cop-chip" data-q="Quels soignants ont fait le plus d'heures ?">Top soignants</button>
+  </div>
+  <form class="cop-compose" id="copForm">
+    <input type="text" id="copInput" placeholder="Posez votre question…" autocomplete="off" required>
+    <button class="btn btn-approve" type="submit">Envoyer</button>
+  </form>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+const thread=document.getElementById('thread');
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function add(text,who){const d=document.createElement('div');d.className='cop-msg '+who;
+  d.innerHTML='<div class="cop-body">'+esc(text).replace(/\n/g,'<br>')+'</div>';thread.appendChild(d);thread.scrollTop=thread.scrollHeight;}
+async function ask(q){
+  add(q,'me'); const typing=document.createElement('div');typing.className='cop-msg bot';typing.innerHTML='<div class="cop-body">…</div>';thread.appendChild(typing);thread.scrollTop=thread.scrollHeight;
+  try{
+    const r=await fetch("{% url 'dashboard:copilot_ask' %}",{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({q})});
+    const d=await r.json(); typing.remove(); add(d.answer,'bot');
+  }catch(e){ typing.remove(); add("Désolé, une erreur est survenue.",'bot'); }
+}
+document.getElementById('copForm').addEventListener('submit',e=>{e.preventDefault();const i=document.getElementById('copInput');if(i.value.trim()){ask(i.value.trim());i.value='';}});
+document.querySelectorAll('.cop-chip').forEach(c=>c.addEventListener('click',()=>ask(c.dataset.q)));
+</script>
+{% endblock %}

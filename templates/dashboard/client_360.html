@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Client 360° — {{ client.code }}{% endblock %}
+{% block topbar_actions %}
+  <a class="btn btn-approve btn-sm" href="{% url 'dashboard:client_pdf' client.id %}?download" target="_blank">{% icon "download" 15 %} Dossier PDF</a>
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+{% if user.can_care or user.can_finance %}<div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">{% if user.can_finance %}<a class="btn btn-approve btn-sm" href="{% url 'dashboard:invoice_new' %}?client={{ client.id }}">{% icon "dollar" 14 %} Nouvelle facture</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'dashboard:family_preview' client.id %}">{% icon "clients" 14 %} Aperçu portail famille</a></div>{% endif %}
+<div class="card">
+  <div class="head"><h2>{{ client.code }} — {{ client.full_name }}</h2>
+    <span class="risk {{ client.risk_level }}">Risque : {{ client.get_risk_level_display }}</span></div>
+  <div class="body two-col">
+    <dl class="detail-list">
+      <dt>Adresse</dt><dd>{{ client.address|default:"—" }}</dd>
+      <dt>Langue</dt><dd>{{ client.preferred_language|default:"—" }}</dd>
+      <dt>Type de soins</dt><dd>{{ client.care_type|default:"—" }}</dd>
+      {% if client.care_plan %}<dt>Durée visite</dt><dd>{{ client.care_plan.visit_duration_minutes }} min</dd>{% endif %}
+    </dl>
+    <dl class="detail-list">
+      {% for ct in client.contacts.all %}<dt>{{ ct.relationship|default:"Contact" }}</dt><dd>{{ ct.name }} · {{ ct.phone }}</dd>{% endfor %}
+    </dl>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>Timeline d'intelligence de soins</h2></div></div>
+    <div class="body"><div class="timeline">
+      {% for when, kind, obj in timeline %}
+        {% if kind == 'ai_flag' %}<div class="tl a"><div class="when">{{ when|date:"d M · H:i" }}</div><div class="what">IA a détecté une préoccupation potentielle</div></div>
+        {% elif kind == 'report' %}<div class="tl b"><div class="when">{{ when|date:"d M · H:i" }}</div><div class="what">Rapport soumis{% if obj.caregiver %} par {{ obj.caregiver.code }}{% endif %}</div></div>
+        {% elif kind == 'checkin' %}<div class="tl g"><div class="when">{{ when|date:"d M · H:i" }}</div><div class="what">Soignant arrivé</div></div>
+        {% elif kind == 'incident' %}<div class="tl r"><div class="when">{{ when|date:"d M · H:i" }}</div><div class="what">Incident : {{ obj.title }}</div></div>
+        {% else %}<div class="tl"><div class="when">{{ when|date:"d M · H:i" }}</div><div class="what">Visite planifiée{% if obj.caregiver %} — {{ obj.caregiver.code }}{% endif %}</div></div>{% endif %}
+      {% empty %}<p class="empty">Aucun historique.</p>{% endfor %}
+    </div></div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="head"><h2>Prochaines visites</h2></div>
+      <div class="body">
+        {% for v in upcoming %}<div class="row-item"><div class="l">{{ v.scheduled_start|date:"d M H:i" }}<small>{{ v.caregiver.full_name|default:"Non affecté" }}</small></div><span class="pill b">{{ v.get_status_display }}</span></div>
+        {% empty %}<p class="empty">Aucune visite à venir.</p>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>Incidents</h2></div>
+      <div class="body">
+        {% for i in incidents %}<div class="row-item"><div class="l">{{ i.title }}<small>{{ i.created_at|date:"d M" }}</small></div><span class="risk {{ i.severity }}">{{ i.get_severity_display }}</span></div>
+        {% empty %}<p class="empty">Aucun incident.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="card">
+  <div class="head"><h2>{% icon "award" 14 %} Évaluations des besoins</h2><span class="chip">Client → Évaluation → Plan de soins</span></div>
+  <div class="body" style="padding:0">
+    {% for a in assessments %}
+    <div class="inc-row" style="padding:12px 16px">
+      <div><b>{{ a.assessed_on|date:"d M Y" }}</b> · Mobilité : {{ a.get_mobility_display }} · Cognition : {{ a.get_cognition_display }} · Risque de chute : {{ a.get_fall_risk_display }}
+        <small style="display:block;color:var(--muted)">Recommandé : {{ a.recommended_hours }} h/sem{% if a.recommended_care_type %} · {{ a.recommended_care_type }}{% endif %}{% if a.adl_list %} · AVQ : {{ a.adl_list|join:", " }}{% endif %}</small></div>
+      <span class="pill {% if a.status == 'COMPLETED' %}g{% else %}a{% endif %}">{{ a.get_status_display }}</span>
+    </div>
+    {% empty %}<p class="empty" style="padding:22px">Aucune évaluation. Réalisez une évaluation des besoins pour bâtir le plan de soins.</p>{% endfor %}
+  </div>
+  {% if user.is_staff or user.is_coordinator %}
+  <div class="body" style="border-top:1px solid var(--line)">
+    <form method="post" action="{% url 'dashboard:create_assessment' client.id %}" class="docform">
+      {% csrf_token %}
+      <div class="two"><div><label class="dl">Date</label><input type="date" name="assessed_on" value="{{ today }}"></div>
+        <div><label class="dl">Statut</label><select name="status"><option value="COMPLETED">Terminée</option><option value="DRAFT">Brouillon</option></select></div></div>
+      <div class="two"><div><label class="dl">Mobilité</label><select name="mobility"><option value="INDEPENDENT">Autonome</option><option value="ASSISTED" selected>Aide partielle</option><option value="DEPENDENT">Dépendant</option></select></div>
+        <div><label class="dl">Cognition</label><select name="cognition"><option value="NORMAL">Normale</option><option value="MILD">Trouble léger</option><option value="MODERATE">Trouble modéré</option><option value="SEVERE">Trouble sévère</option></select></div></div>
+      <div class="two"><div><label class="dl">Risque de chute</label><select name="fall_risk"><option value="LOW">Faible</option><option value="MEDIUM">Moyen</option><option value="HIGH">Élevé</option></select></div>
+        <div><label class="dl">Heures recommandées/sem</label><input type="number" name="recommended_hours" value="10" step="0.5"></div></div>
+      <label class="dl">Type de soins recommandé</label><input type="text" name="recommended_care_type" placeholder="ex. Personnes âgées, mobilité réduite">
+      <label class="dl">Besoins (AVQ)</label>
+      <div class="chk-grid">
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Hygiène"> Hygiène</label>
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Repas"> Repas</label>
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Médication"> Médication</label>
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Mobilité"> Mobilité</label>
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Toilette"> Toilette</label>
+        <label class="chk"><input type="checkbox" name="adl_needs" value="Habillage"> Habillage</label>
+      </div>
+      <label class="dl">Notes médicales</label><textarea name="medical_notes" rows="2"></textarea>
+      <div class="docactions"><button class="btn btn-approve btn-sm" type="submit">Enregistrer l'évaluation</button></div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="head"><h2>{% icon "reports" 14 %} Contrats de services</h2></div>
+  <div class="body" style="padding:0">
+    {% for c in contracts %}
+    <div class="inc-row" style="padding:12px 16px">
+      <div><b>{{ c.reference|default:"Contrat" }}</b> · {{ c.hours_per_week }} h/sem · {{ c.hourly_rate }} $/h
+        <small style="display:block;color:var(--muted)">Depuis le {{ c.start_date|date:"d M Y" }}{% if c.end_date %} → {{ c.end_date|date:"d M Y" }}{% endif %}</small></div>
+      <span class="pill {% if c.status == 'ACTIVE' %}g{% elif c.status == 'ENDED' %}n{% else %}a{% endif %}">{{ c.get_status_display }}</span>
+    </div>
+    {% empty %}<p class="empty" style="padding:22px">Aucun contrat enregistré.</p>{% endfor %}
+  </div>
+  {% if user.is_staff or user.is_coordinator %}
+  <div class="body" style="border-top:1px solid var(--line)">
+    <form method="post" class="docform">
+      {% csrf_token %}
+      <div class="two"><div><label class="dl">Référence</label><input type="text" name="reference" placeholder="CTR-001"></div>
+        <div><label class="dl">Statut</label><select name="status"><option value="ACTIVE">Actif</option><option value="DRAFT">Brouillon</option><option value="ENDED">Terminé</option></select></div></div>
+      <div class="two"><div><label class="dl">Heures / semaine</label><input type="number" name="hours_per_week" value="10" step="0.5"></div>
+        <div><label class="dl">Tarif ($/h)</label><input type="number" name="hourly_rate" value="8" step="0.5"></div></div>
+      <label class="dl">Date de début</label><input type="date" name="start_date" value="{{ today }}">
+      <div class="docactions"><button class="btn btn-approve btn-sm" type="submit">Ajouter un contrat</button></div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="head"><h2>{% icon "dollar" 14 %} Factures</h2>{% if user.can_finance %}<a class="chip-link" href="{% url 'dashboard:invoice_new' %}?client={{ client.id }}">+ Nouvelle facture</a>{% endif %}</div>
+  <table>
+    <thead><tr><th>Période</th><th>Heures</th><th>Montant</th><th>Paiement</th><th></th></tr></thead><tbody>
+    {% for i in invoices %}
+      <tr>
+        <td><b>{{ i.period }}</b></td><td>{{ i.hours }} h</td><td><b>{{ i.amount }} $</b></td>
+        <td>{% if i.status == 'PAID' %}<span class="paystat paid">● Payé{% if i.paid_on %} · {{ i.paid_on|date:"d M" }}{% endif %}</span>{% else %}<span class="paystat unpaid">● Impayé</span>{% endif %}</td>
+        <td style="text-align:right;white-space:nowrap"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:invoice_print' i.id %}" target="_blank">Imprimer</a>{% if i.status != 'PAID' and user.can_finance %}<form method="post" action="{% url 'dashboard:mark_invoice_paid' i.id %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm">Payée</button></form>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucune facture.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

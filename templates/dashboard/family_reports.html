@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Historique de soins{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="head"><h2>Rapports de visite de {{ client.first_name }}</h2></div>
+  <div class="body" style="padding:0">
+    {% for r in reports %}
+    <div class="fam-report">
+      <div class="fr-head">
+        <b>{{ r.created_at|date:"l d F Y" }}</b>
+        <small>{{ r.caregiver.full_name|default:"Soignant" }} · Humeur : {{ r.get_mood_display }}</small>
+      </div>
+      {% if r.tasks_completed %}<div class="fr-tasks">{% for t in r.tasks_completed %}<span class="ov-reason">{% icon "check" 10 "ok" %} {{ t }}</span>{% endfor %}</div>{% endif %}
+      {% if r.notes %}<p class="fr-notes">{{ r.notes }}</p>{% endif %}
+      {% if r.signed_by %}<div class="fr-sign"><span class="signed-badge">✔ Signé par {{ r.signed_by }}</span>{% if r.signature %} <img class="sig-shown" src="{{ r.signature }}" alt="signature">{% endif %}</div>{% endif %}
+      {% if r.blood_pressure or r.pulse %}<div class="fr-vitals">{% if r.blood_pressure %}Tension : {{ r.blood_pressure }}{% endif %}{% if r.pulse %} · Pouls : {{ r.pulse }}{% endif %}</div>{% endif %}
+    </div>
+    {% empty %}<p class="empty" style="padding:30px">L'historique de soins apparaîtra ici.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

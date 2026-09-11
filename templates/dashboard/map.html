@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static icons %}
+{% block title %}Carte des opérations — Panther Home Care{% endblock %}
+{% block heading %}Carte des opérations{% endblock %}
+{% block body_class %}has-map{% endblock %}
+{% block content %}
+{{ data_json|json_script:"mdata" }}
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">
+
+<div class="map-layout">
+  <div class="card">
+    <div class="head">
+      <h2>Lubumbashi — {{ n_clients }} clients · {{ n_caregivers }} soignants</h2>
+      <div class="map-filters">
+        <button class="mfilter on" data-f="clients">Clients</button>
+        <button class="mfilter on" data-f="caregivers">Soignants</button>
+        <button class="mfilter on" data-f="risk">Risque élevé</button>
+      </div>
+    </div>
+    <div class="body" style="padding:0">
+      <div id="leafmap" class="leafmap"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>Affectation géo-optimisée</h2></div><span class="chip">IA</span></div>
+      <div class="body" id="matchpanel"><p class="empty">Aucune visite non couverte.</p></div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>Légende</h2></div>
+      <div class="body">
+        <div class="leg-row"><i class="dotm cg"></i> Soignant</div>
+        <div class="leg-row"><i class="dotm lo"></i> Client — risque faible</div>
+        <div class="leg-row"><i class="dotm me"></i> Client — risque moyen</div>
+        <div class="leg-row"><i class="dotm hi"></i> Client — risque élevé</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById('mdata').textContent);
+  var map = L.map('leafmap', {zoomControl:true, scrollWheelZoom:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  var COL = {cg:'#2b6cb0', lo:'#1f8a4c', me:'#e59a1c', hi:'#d93a3a'};
+  function riskColor(r){ return r==='CRITICAL'||r==='HIGH' ? COL.hi : (r==='MEDIUM'? COL.me : COL.lo); }
+  function dot(lat,lng,color,radius){
+    return L.circleMarker([lat,lng], {radius:radius||7, color:'#fff', weight:2,
+      fillColor:color, fillOpacity:0.95});
+  }
+  var groups = {clients:L.layerGroup(), caregivers:L.layerGroup(), risk:L.layerGroup()};
+  var bounds = [];
+
+  (D.caregivers||[]).forEach(function(c){
+    if(c.lat==null) return; bounds.push([c.lat,c.lng]);
+    dot(c.lat,c.lng,COL.cg,6).bindPopup('<b>'+c.code+'</b><br>'+(c.name||'')+'<br><small>Soignant</small>').addTo(groups.caregivers);
+  });
+  (D.clients||[]).forEach(function(c){
+    if(c.lat==null) return; bounds.push([c.lat,c.lng]);
+    var high = (c.risk==='HIGH'||c.risk==='CRITICAL');
+    var m = dot(c.lat,c.lng,riskColor(c.risk),8).bindPopup(
+      '<b>'+c.code+'</b><br>'+(c.name||'')+'<br><small>'+(c.care||'Soins')+' · risque '+(c.risk||'—').toLowerCase()+'</small>');
+    m.addTo(high ? groups.risk : groups.clients);
+  });
+  Object.values(groups).forEach(function(g){ g.addTo(map); });
+
+  // AI match lines from the uncovered client to top candidates
+  if(D.focus && D.focus.lat){
+    var f = D.focus;
+    L.circleMarker([f.lat,f.lng], {radius:11, color:'#e8622a', weight:3, fillColor:'#fff', fillOpacity:1})
+      .bindPopup('<b>'+f.code+'</b><br><small>Visite non couverte</small>').addTo(map).openPopup();
+    var html = '<div class="mp-title">Meilleurs profils pour <b>'+f.code+'</b></div>';
+    (D.match_lines||[]).forEach(function(m){
+      L.polyline([[f.lat,f.lng],[m.lat,m.lng]], {color:'#e8622a', weight:2, opacity:0.5, dashArray:'5,6'}).addTo(map);
+      html += '<div class="mp-row"><b>'+m.code+'</b><span>'+m.score+'% · '+(m.km!=null?m.km+' km':'')+'</span></div>';
+    });
+    document.getElementById('matchpanel').innerHTML = html;
+  }
+
+  if(bounds.length) map.fitBounds(bounds, {padding:[30,30]});
+  else map.setView([-11.66,27.48], 12);
+  setTimeout(function(){ map.invalidateSize(); }, 200);
+
+  document.querySelectorAll('.mfilter').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btn.classList.toggle('on');
+      var g = groups[btn.dataset.f];
+      if(btn.classList.contains('on')) g.addTo(map); else map.removeLayer(g);
+    });
+  });
+})();
+</script>
+{% endblock %}

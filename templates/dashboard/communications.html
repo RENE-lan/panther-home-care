@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Communications — Panther Home Care{% endblock %}
+{% block heading %}Communications{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "inbox" 15 %}</span><h2>Nouveau message</h2></div></div>
+    <div class="body">
+      <form method="post" class="docform">
+        {% csrf_token %}
+        <label class="dl">Destinataires</label>
+        <select name="audience">
+          <option value="caregivers">Tous les soignants ({{ n_caregivers }})</option>
+          <option value="families">Toutes les familles ({{ n_families }})</option>
+          {% for cg in caregivers %}<option value="cg:{{ cg.id }}">{{ cg.code }} — {{ cg.full_name }}</option>{% endfor %}
+        </select>
+        <label class="dl">Titre</label>
+        <input type="text" name="title" placeholder="Ex : Réunion d'équipe vendredi" required>
+        <label class="dl">Message</label>
+        <textarea name="body" rows="4" placeholder="Votre message…"></textarea>
+        <label class="dl">Canaux</label>
+        <div class="chk-grid">
+          <label class="chk"><input type="checkbox" checked disabled> Application (toujours)</label>
+          <label class="chk"><input type="checkbox" name="email" checked> E-mail</label>
+          <label class="chk"><input type="checkbox" name="sms" {% if not sms_enabled %}disabled{% endif %}> SMS {% if not sms_enabled %}(config. requise){% endif %}</label>
+        </div>
+        <div class="docactions"><button class="btn btn-approve" type="submit">{% icon "bell" 15 %} Envoyer</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head"><h2>Canaux de diffusion</h2></div>
+    <div class="body">
+      <div class="brief-line"><span class="dot g"></span><b>Application</b> — notification dans le portail (toujours actif)</div>
+      <div class="brief-line"><span class="dot b"></span><b>E-mail</b> — envoyé si le destinataire a une adresse{% if not sms_enabled %} (backend console en dev){% endif %}</div>
+      <div class="brief-line"><span class="dot {% if sms_enabled %}g{% else %}a{% endif %}"></span><b>SMS</b> — {% if sms_enabled %}activé (Twilio){% else %}ajoutez TWILIO_* dans .env pour activer{% endif %}</div>
+      <p class="ai-disclaimer" style="margin-top:14px">Les soignants et familles reçoivent le message instantanément dans leur espace, et par e-mail/SMS selon les canaux choisis.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

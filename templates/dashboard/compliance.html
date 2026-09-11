@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Conformité — Panther Home Care{% endblock %}
+{% block heading %}Conformité &amp; certifications{% endblock %}
+{% block topbar_actions %}
+  <form method="post" action="{% url 'dashboard:remind_all' %}" style="margin:0"
+        onsubmit="return confirm('Envoyer un rappel de renouvellement à tous les soignants dont une certification expire dans 60 jours ?');">
+    {% csrf_token %}
+    <button class="btn btn-approve btn-sm" type="submit">{% icon "bell" 15 %} Rappeler les échéances</button>
+  </form>
+{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "shield" 16 %}</span><b>Conformité des soignants</b></div>
+  <p>Surveillez les dates d'expiration des licences et certifications. Envoyez des rappels de renouvellement
+     pour garder votre équipe conforme et protéger la réputation de l'agence.</p>
+</div>
+
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Certifications suivies</div><div class="val">{{ kpis.total }}</div><div class="delta">Toutes échéances</div></div>
+  <div class="kpi {% if kpis.expiring %}alert{% endif %}"><div class="label">Expirent bientôt</div><div class="val">{{ kpis.expiring }}</div><div class="delta">≤ 60 jours</div></div>
+  <div class="kpi {% if kpis.expired %}alert{% endif %}"><div class="label">Expirées</div><div class="val">{{ kpis.expired }}</div><div class="delta">À régulariser</div></div>
+</div>
+
+<div class="filterbar wrap">
+  <a class="tab {% if not status %}on{% endif %}" href="?">Toutes</a>
+  <a class="tab {% if status == 'expiring' %}on{% endif %}" href="?status=expiring">Expirent bientôt</a>
+  <a class="tab {% if status == 'expired' %}on{% endif %}" href="?status=expired">Expirées</a>
+  <a class="tab {% if status == 'valid' %}on{% endif %}" href="?status=valid">Valides</a>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Soignant</th><th>Certification</th><th>Émise le</th><th>Expire le</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><b>{{ r.cert.caregiver.code }}</b><br><small style="color:var(--muted)">{{ r.cert.caregiver.full_name }}</small></td>
+        <td>{{ r.cert.name }}</td>
+        <td>{{ r.cert.issued_on|date:"d M Y"|default:"—" }}</td>
+        <td>{{ r.cert.expires_on|date:"d M Y" }}</td>
+        <td>
+          {% if r.status == 'expired' %}<span class="pill r">Expirée · il y a {{ r.days|stringformat:'d'|cut:'-' }} j</span>
+          {% elif r.status == 'expiring' %}<span class="pill a">Expire dans {{ r.days }} j</span>
+          {% else %}<span class="pill g">Valide</span>{% endif %}
+        </td>
+        <td style="text-align:right">
+          {% if r.status != 'valid' %}
+          <form method="post" action="{% url 'dashboard:remind_cert' r.cert.id %}" style="display:inline">
+            {% csrf_token %}<button class="btn btn-ghost btn-sm">Rappeler</button></form>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="empty">Aucune certification pour ce filtre.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

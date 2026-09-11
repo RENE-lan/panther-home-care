@@ -1,0 +1,19 @@
+{% extends "account/_auth_base.html" %}
+{% block title %}Créer un compte — Panther Home Care{% endblock %}
+{% block heading %}Créer votre compte{% endblock %}
+{% block sub %}Quelques secondes suffisent pour démarrer.{% endblock %}
+{% block form %}
+<form class="authform" method="post" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="err">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% for field in form %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.errors %}<div class="field-err">{{ field.errors|striptags }}</div>{% endif %}
+    {% if field.help_text %}<div class="field-help">{{ field.help_text|safe }}</div>{% endif %}
+  {% endfor %}
+  {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+  <button class="btn btn-approve authsubmit" type="submit">Créer mon compte</button>
+</form>
+{% endblock %}
+{% block alt %}Vous avez déjà un compte ? <a href="{% url 'account_login' %}">Se connecter</a>{% endblock %}

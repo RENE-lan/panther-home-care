@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Documents{% endblock %}
+{% block content %}
+<div class="grid">
+  <div>
+    <div class="card">
+      <div class="head"><h2>{% icon "reports" 14 %} Plan de soins</h2></div>
+      <div class="body">
+        {% if care_plan %}
+          <p style="margin:0 0 10px">{{ care_plan.summary|default:"Plan de soins personnalisé." }}</p>
+          {% if care_plan.tasks.all %}<div class="chip-row">{% for t in care_plan.tasks.all %}<span class="ov-reason">{% icon "check" 10 "ok" %} {{ t.label }}</span>{% endfor %}</div>{% endif %}
+        {% else %}<p class="empty">Plan de soins en préparation.</p>{% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>{% icon "award" 14 %} Évaluations</h2></div>
+      <div class="body" style="padding:0">
+        {% for a in assessments %}<div class="inc-row" style="padding:11px 16px"><div><b>{{ a.assessed_on|date:"d M Y" }}</b><small style="display:block;color:var(--muted)">Mobilité : {{ a.get_mobility_display }} · {{ a.recommended_hours }} h/sem recommandées</small></div><span class="pill {% if a.status == 'COMPLETED' %}g{% else %}a{% endif %}">{{ a.get_status_display }}</span></div>
+        {% empty %}<p class="empty" style="padding:22px">Aucune évaluation partagée.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head"><h2>{% icon "reports" 14 %} Rapports de visite (PDF)</h2></div>
+    <div class="body" style="padding:0">
+      {% for r in reports %}
+      <a class="doc-row" href="{% url 'dashboard:report_pdf' r.id %}?download" target="_blank">
+        <span class="doc-ic">{% icon "download" 15 %}</span>
+        <div><b>Rapport du {{ r.created_at|date:"d M Y" }}</b><small>{{ r.caregiver.full_name|default:"Soignant" }}{% if r.signed_by %} · ✔ signé{% endif %}</small></div>
+      </a>
+      {% empty %}<p class="empty" style="padding:22px">Aucun rapport encore.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

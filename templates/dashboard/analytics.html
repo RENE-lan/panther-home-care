@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static icons %}
+{% block title %}Analytique & IA — Panther Home Care{% endblock %}
+{% block heading %}Analytique & Intelligence{% endblock %}
+{% block topbar_actions %}
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+{{ data_json|json_script:"adata" }}
+
+<div class="kpis kpis-5">
+  <div class="kpi"><div class="label">Taux d'utilisation</div><div class="val">{{ a.kpi.utilization }}%</div><div class="delta">Effectif sur 30 jours</div></div>
+  <div class="kpi"><div class="label">Visites / jour</div><div class="val">{{ a.kpi.avg_visits_day }}</div><div class="delta">Moyenne {{ days }} jours</div></div>
+  <div class="kpi"><div class="label">Satisfaction</div><div class="val">{{ a.kpi.satisfaction }}%</div><div class="delta">Humeur moyenne clients</div></div>
+  <div class="kpi"><div class="label">Visites terminées</div><div class="val">{{ a.kpi.completed_30 }}</div><div class="delta">30 derniers jours</div></div>
+  <div class="kpi {% if a.kpi.open_incidents %}alert{% endif %}"><div class="label">Incidents ouverts</div><div class="val">{{ a.kpi.open_incidents }}</div><div class="delta">À traiter</div></div>
+</div>
+
+<div class="chart-grid">
+  <div class="card chart-card wide">
+    <div class="head"><h2>Volume des visites ({{ days }} jours)</h2><span class="chip">Opérations</span></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cVisits"></canvas></div></div>
+  </div>
+  <div class="card chart-card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>Signalements IA</h2></div><span class="chip">IA</span></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cFlags"></canvas></div></div>
+  </div>
+  <div class="card chart-card">
+    <div class="head"><h2>Satisfaction / humeur ({{ days }} jours)</h2></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cMood"></canvas></div></div>
+  </div>
+  <div class="card chart-card">
+    <div class="head"><h2>Répartition des risques clients</h2></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cRisk"></canvas></div></div>
+  </div>
+  <div class="card chart-card">
+    <div class="head"><h2>Incidents par gravité</h2></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cSev"></canvas></div></div>
+  </div>
+  <div class="card chart-card wide">
+    <div class="head"><h2>Charge des soignants — top 8 (heures / 30 jours)</h2><span class="chip">Prévisionnel</span></div>
+    <div class="body"><div class="chart-wrap"><canvas id="cOcc"></canvas></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block body_extra %}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+const A = JSON.parse(document.getElementById('adata').textContent);
+const C = {navy:'#0e1c38', orange:'#e8622a', green:'#1f8a4c', red:'#d93a3a',
+          amber:'#e59a1c', blue:'#2b6cb0', muted:'#6b7688', line:'#e6eaf0'};
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = C.muted;
+const noLegend = {legend:{display:false}};
+const grid = {grid:{color:C.line, drawBorder:false}};
+
+new Chart(cVisits, {type:'bar', data:{labels:A.labels, datasets:[
+  {label:'Planifiées', data:A.visits_total, backgroundColor:'#dbe3ef', borderRadius:4, order:2},
+  {label:'Terminées', data:A.visits_done, type:'line', borderColor:C.green,
+   backgroundColor:'rgba(31,138,76,.08)', fill:true, tension:.35, borderWidth:2,
+   pointRadius:0, order:1},
+]}, options:{responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:true, position:'bottom', labels:{boxWidth:10, usePointStyle:true}}},
+  scales:{x:{grid:{display:false}}, y:{beginAtZero:true, ...grid}}}});
+
+new Chart(cFlags, {type:'line', data:{labels:A.labels, datasets:[
+  {data:A.flags, borderColor:C.orange, backgroundColor:'rgba(232,98,42,.10)',
+   fill:true, tension:.35, borderWidth:2, pointRadius:2, pointBackgroundColor:C.orange}]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:noLegend,
+  scales:{x:{grid:{display:false}}, y:{beginAtZero:true, ...grid, ticks:{precision:0}}}}});
+
+new Chart(cMood, {type:'line', data:{labels:A.labels, datasets:[
+  {data:A.mood, borderColor:C.blue, backgroundColor:'rgba(43,108,176,.08)',
+   fill:true, tension:.35, borderWidth:2, pointRadius:0}]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:noLegend,
+  scales:{x:{grid:{display:false}}, y:{suggestedMin:50, suggestedMax:100, ...grid,
+  ticks:{callback:v=>v+'%'}}}}});
+
+new Chart(cRisk, {type:'doughnut', data:{labels:A.risk_labels, datasets:[
+  {data:A.risk_counts, backgroundColor:[C.green, C.amber, C.red, '#b01e1e'],
+   borderWidth:2, borderColor:'#fff'}]},
+  options:{responsive:true, maintainAspectRatio:false, cutout:'62%',
+  plugins:{legend:{position:'right', labels:{boxWidth:10, usePointStyle:true, padding:12}}}}});
+
+new Chart(cSev, {type:'bar', data:{labels:A.risk_labels, datasets:[
+  {data:A.sev_counts, backgroundColor:[C.blue, C.amber, C.red, '#b01e1e'], borderRadius:4}]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:noLegend,
+  scales:{x:{grid:{display:false}}, y:{beginAtZero:true, ...grid, ticks:{precision:0}}}}});
+
+new Chart(cOcc, {type:'bar', data:{labels:A.occ_labels, datasets:[
+  {data:A.occ_hours, backgroundColor:C.navy, borderRadius:4}]},
+  options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:noLegend,
+  scales:{x:{beginAtZero:true, ...grid}, y:{grid:{display:false}}}}});
+</script>
+
+<h3 class="sec-title" style="margin-top:8px">Intelligence de gestion</h3>
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Revenu ce mois</div><div class="val">{{ bi.rev_this }} $</div><div class="delta {% if bi.rev_delta >= 0 %}up{% endif %}">{% if bi.rev_delta >= 0 %}↑{% else %}↓{% endif %} {{ bi.rev_delta }}% vs mois dernier</div></div>
+  <div class="kpi {% if bi.missed_month %}alert{% endif %}"><div class="label">Visites manquées</div><div class="val">{{ bi.missed_month }}</div><div class="delta">Ce mois-ci</div></div>
+  <div class="kpi {% if bi.at_risk_ct %}alert{% endif %}"><div class="label">Clients à risque</div><div class="val">{{ bi.at_risk_ct }}</div><div class="delta">À surveiller</div></div>
+</div>
+<div class="grid">
+  <div class="card"><div class="head"><h2>Clients les plus rentables</h2></div><div class="body">
+    {% for c in bi.top_profit %}<div class="inc-row"><span>{{ c.code }}</span><b>{{ c.margin }} $</b></div>{% empty %}<p class="empty">Générez des factures pour l'analyse.</p>{% endfor %}</div></div>
+  <div class="card"><div class="head"><h2>Soignants sous-utilisés (14 j)</h2></div><div class="body">
+    {% for c in bi.underutilized %}<div class="inc-row"><span>{{ c.code }}</span><b>{{ c.hours }} h</b></div>{% endfor %}</div></div>
+</div>
+{% if bi.at_risk %}
+<div class="card"><div class="head"><h2><span class="hdot a"></span> Clients à risque de départ</h2></div><div class="body">
+  {% for c in bi.at_risk %}<div class="inc-row"><span>{{ c.code }}</span><small style="color:var(--muted)">{{ c.reason }}</small></div>{% endfor %}</div></div>
+{% endif %}
+
+<h3 class="sec-title" style="margin-top:8px">Prédictif</h3>
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Visites prévues (7 j)</div><div class="val">{{ forecast.upcoming }}</div><div class="delta">Projection : {{ forecast.projected }}</div></div>
+  <div class="kpi"><div class="label">Capacité estimée (7 j)</div><div class="val">{{ forecast.capacity }}</div><div class="delta">{{ forecast.daily_avg }} visites/jour en moy.</div></div>
+  <div class="kpi {% if forecast.gap or forecast.uncovered %}alert{% endif %}"><div class="label">Risque de sous-effectif</div><div class="val">{{ forecast.gap }}</div><div class="delta">{{ forecast.uncovered }} déjà non couvertes</div></div>
+</div>
+<div class="card"><div class="head"><h2>{% icon "ai" 14 %} Risque de départ client (prédiction)</h2><span class="chip">Score 0–100</span></div>
+  <table><thead><tr><th>Client</th><th>Risque</th><th>Facteurs</th></tr></thead><tbody>
+    {% for r in churn %}<tr>
+      <td><b>{{ r.client.code }}</b></td>
+      <td><span class="pill {% if r.score >= 60 %}r{% elif r.score >= 35 %}a{% else %}g{% endif %}">{{ r.score }}</span></td>
+      <td><small style="color:var(--muted)">{{ r.factors|join:", "|default:"—" }}</small></td>
+    </tr>{% empty %}<tr><td colspan="3" class="empty">Aucun risque détecté — clientèle stable ✅</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block coltype %}colM{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% if pth_stats %}
+  <div class="pth-welcome">Bonjour {{ request.user.get_full_name|default:request.user.username }} — voici l'état des opérations.</div>
+  <div class="pth-kpis">
+    <div class="pth-kpi"><div class="k-label">Clients actifs</div><div class="k-val">{{ pth_stats.clients }}</div></div>
+    <div class="pth-kpi"><div class="k-label">Soignants actifs</div><div class="k-val">{{ pth_stats.caregivers }}</div></div>
+    <div class="pth-kpi"><div class="k-label">Visites aujourd'hui</div><div class="k-val">{{ pth_stats.visits_today }}</div></div>
+    <div class="pth-kpi"><div class="k-label">Rapports (7 j)</div><div class="k-val">{{ pth_stats.reports_7d }}</div></div>
+    <div class="pth-kpi {% if pth_stats.incidents_open %}alert{% endif %}"><div class="k-label">Incidents ouverts</div><div class="k-val">{{ pth_stats.incidents_open }}</div></div>
+    <div class="pth-kpi"><div class="k-label">Candidats (recrutement)</div><div class="k-val">{{ pth_stats.applicants }}</div></div>
+  </div>
+  {% endif %}
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}

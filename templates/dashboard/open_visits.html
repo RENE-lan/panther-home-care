@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Visites ouvertes — Panther Home Care{% endblock %}
+{% block heading %}Visites ouvertes{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "calendarplus" 16 %}</span><b>Explorez et demandez des visites</b></div>
+  <p>Parcourez toutes les visites non couvertes des 45 prochains jours. Le <b>score de compatibilité</b>
+     indique dans quelle mesure vos préférences et qualifications correspondent aux besoins du client
+     (compétences, distance, environnement). Le bureau reste joignable par téléphone comme toujours.</p>
+</div>
+
+<form class="filterbar wrap" method="get">
+  <label class="fld"><span>Distance max</span>
+    <input type="number" name="max_km" value="{{ f_max_km }}" placeholder="km" min="1"></label>
+  <label class="fld"><span>Type de soins</span>
+    <select name="care"><option value="">Tous</option>
+      {% for c in care_types %}<option value="{{ c }}" {% if c == f_care %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select></label>
+  <label class="fld"><span>Trier par</span>
+    <select name="sort">
+      <option value="score" {% if f_sort == 'score' %}selected{% endif %}>Compatibilité</option>
+      <option value="date" {% if f_sort == 'date' %}selected{% endif %}>Date</option>
+      <option value="distance" {% if f_sort == 'distance' %}selected{% endif %}>Distance</option>
+    </select></label>
+  <button class="btn btn-ghost btn-sm" type="submit">{% icon "search" 14 %} Filtrer</button>
+</form>
+
+<div class="ov-list">
+  {% for r in rows %}
+  <div class="ov-card">
+    <div class="ov-score {% if r.score >= 85 %}g{% elif r.score >= 65 %}a{% else %}r{% endif %}">
+      <div class="n">{{ r.score }}%</div><div class="l">compatibilité</div>
+    </div>
+    <div class="ov-main">
+      <div class="ov-title">{{ r.visit.client.first_name }} <span class="ov-care">· {{ r.visit.client.care_type|default:"Soins à domicile" }}</span></div>
+      <div class="ov-meta">
+        {% icon "schedule" 13 %} {{ r.visit.scheduled_start|date:"D d M" }} · {{ r.visit.scheduled_start|time:"H:i" }}–{{ r.visit.scheduled_end|time:"H:i" }}
+        {% if r.distance_km %} &nbsp;·&nbsp; {% icon "visits" 13 %} {{ r.distance_km }} km{% endif %}
+      </div>
+      {% if r.reasons %}<div class="ov-reasons">{% for x in r.reasons %}<span class="ov-reason">{{ x }}</span>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="ov-action">
+      {% if r.visit.id in my_pending %}
+        <span class="pill a">En attente</span>
+      {% else %}
+        <form method="post" action="{% url 'dashboard:request_visit' r.visit.id %}"
+              onsubmit="return confirm('Confirmez-vous être disponible, sans conflit d\'horaire, pour cette visite ?');">
+          {% csrf_token %}
+          <button class="btn btn-approve btn-sm" type="submit">Demander</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="empty" style="padding:34px">Aucune visite ouverte ne correspond à vos filtres pour le moment.</p>
+  {% endfor %}
+</div>
+
+<p class="kan-note">Ce n'est pas un système « premier arrivé, premier servi ». Le bureau examine chaque
+demande et privilégie la continuité des soins : les soignants ayant déjà accompagné le client sont
+prioritaires, et les préférences du client (par ex. une soignante) sont toujours respectées. La décision
+finale revient au bureau.</p>
+{% endblock %}

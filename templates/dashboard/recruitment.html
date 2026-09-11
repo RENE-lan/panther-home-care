@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Recrutement & Formation — Panther Home Care{% endblock %}
+{% block heading %}Recrutement & Formation{% endblock %}
+{% block topbar_actions %}
+  {% if user.is_staff %}<a class="btn btn-approve btn-sm" href="/admin/caregivers/applicant/add/">{% icon "recruitment" 15 %} Nouveau candidat</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Candidats dans le pipeline</div><div class="val">{{ total }}</div><div class="delta">Talent Hub</div></div>
+  <div class="kpi"><div class="label">En formation</div><div class="val">{{ training }}</div><div class="delta">Étape de formation</div></div>
+  <div class="kpi"><div class="label">Soignants intégrés</div><div class="val">{{ active }}</div><div class="delta">Prêts au planning</div></div>
+</div>
+
+<div class="kanban">
+  {% for st in stages %}
+  <div class="kan-col">
+    <div class="kan-head"><span>{{ st.label }}</span><span class="kan-count">{{ st.count }}</span></div>
+    <div class="kan-body">
+      {% for a in st.applicants %}
+      <div class="kan-card">
+        <div class="kan-av">{{ a.first_name|first }}{{ a.last_name|first }}</div>
+        <div class="kan-meta">
+          <b>{{ a.first_name }} {{ a.last_name }}</b>
+          {% if a.phone %}<small>{{ a.phone }}</small>{% endif %}
+          <small class="kan-date">{{ a.created_at|date:"d M Y" }}</small>
+          {% if user.is_staff or user.is_coordinator %}{% if a.promoted_to %}<span class="pill g" style="margin-top:5px">Soignant {{ a.promoted_to.code }}</span>{% elif st.key == 'CERTIFIED' or st.key == 'ASSESSMENT' or st.key == 'TRAINING' %}<form method="post" action="{% url 'dashboard:promote_applicant' a.id %}" style="margin-top:6px" onsubmit="return confirm('Promouvoir ce candidat en soignant actif ?');">{% csrf_token %}<button class="btn btn-approve btn-sm" style="width:100%">Promouvoir</button></form>{% endif %}{% endif %}
+        </div>
+      </div>
+      {% empty %}<div class="kan-empty">—</div>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<p class="kan-note">Le pipeline suit chaque candidat de la candidature jusqu'à l'intégration comme soignant actif, formation comprise.{% if user.is_staff %} Faites avancer les candidats depuis l'espace d'administration.{% endif %}</p>
+{% endblock %}

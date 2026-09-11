@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Mes visites — Panther Home Care{% endblock %}
+{% block heading %}Mes visites{% endblock %}
+{% block content %}
+{% if request.user.caregiver_profile %}<div class="cal-sub">{% icon "schedule" 14 %} Synchronisez vos visites : <a href="{% url 'dashboard:caregiver_calendar' request.user.caregiver_profile.calendar_token %}">abonnez votre agenda à ce calendrier</a> (Google/Apple).</div>{% endif %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "visits" 16 %}</span><b>Vérification des visites (EVV)</b></div>
+  <p>Pointez votre <b>arrivée</b> et votre <b>départ</b> à chaque visite. L'heure et la position GPS
+     sont enregistrées automatiquement pour la conformité. Terminez en documentant la visite.</p>
+</div>
+
+<div class="mv-list">
+  {% for r in rows %}
+  <div class="mv-card {% if r.visit.status == 'IN_PROGRESS' %}active{% endif %}">
+    <div class="mv-when">
+      <div class="mv-day">{% if r.today %}Aujourd'hui{% else %}{{ r.visit.scheduled_start|date:"D d M" }}{% endif %}</div>
+      <div class="mv-time">{{ r.visit.scheduled_start|time:"H:i" }}<span>–{{ r.visit.scheduled_end|time:"H:i" }}</span></div>
+    </div>
+    <div class="mv-main">
+      <div class="mv-client">{{ r.visit.client.first_name }} <span class="ov-care">· {{ r.visit.client.care_type|default:"Soins à domicile" }}</span></div>
+      {% if r.evv %}
+      <div class="mv-evv">
+        <span class="evv-tag {% if r.evv.late > 15 %}r{% elif r.evv.late > 0 %}a{% else %}g{% endif %}">{% icon "schedule" 11 %} {% if r.evv.late %}Arrivé +{{ r.evv.late }}′{% else %}À l'heure{% endif %}</span>
+        {% if r.evv.has_gps %}<span class="evv-tag {% if r.evv.gps_ok %}g{% else %}r{% endif %}">{% icon "visits" 11 %} {% if r.evv.gps_ok %}GPS vérifié{% else %}Hors zone{% endif %}</span>
+        {% else %}<span class="evv-tag n">{% icon "visits" 11 %} GPS indisponible</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="mv-action">
+      {% if r.visit.status == 'COMPLETED' %}
+        <span class="pill g">{% icon "check" 12 "ok" %} Terminée</span>
+      {% elif r.visit.status == 'IN_PROGRESS' %}
+        <a class="btn btn-approve btn-sm" href="{% url 'dashboard:evv_document' r.visit.id %}">Terminer &amp; documenter</a>
+      {% else %}
+        <form method="post" action="{% url 'dashboard:evv_checkin' r.visit.id %}" class="evv-checkin-form">
+          {% csrf_token %}<input type="hidden" name="lat"><input type="hidden" name="lng">
+          <button class="btn btn-approve btn-sm" type="submit">Pointer l'arrivée</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="empty" style="padding:34px">Aucune visite planifiée pour les 7 prochains jours.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block body_extra %}
+<script>
+document.querySelectorAll('.evv-checkin-form').forEach(function (f) {
+  f.addEventListener('submit', function (e) {
+    if (f.dataset.sent) return;                 // GPS captured (or skipped) — allow submit
+    e.preventDefault();
+    var done = false;
+    function go() { if (done) return; done = true; f.dataset.sent = '1'; f.submit(); }
+    if (!navigator.geolocation) { go(); return; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      f.querySelector('[name=lat]').value = pos.coords.latitude;
+      f.querySelector('[name=lng]').value = pos.coords.longitude; go();
+    }, function () { go(); }, { timeout: 6000, maximumAge: 60000 });
+    setTimeout(go, 7000);                        // never block if GPS hangs
+  });
+});
+</script>
+{% endblock %}

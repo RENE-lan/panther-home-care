@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Suivi clinique — Panther Home Care{% endblock %}
+{% block heading %}Suivi clinique{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "award" 16 %}</span><b>Gestion des plaies &amp; suivis cliniques</b></div>
+  <p>Documentez et suivez l'évolution des plaies, douleurs et autres préoccupations cliniques dans le temps —
+     mesures, statut et notes datées, à chaque visite. Orientation clinique, jamais un diagnostic automatique.</p>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="filterbar">
+      <a class="tab {% if status == 'active' %}on{% endif %}" href="?status=active">En cours <span class="count">{{ active }}</span></a>
+      <a class="tab {% if status == 'resolved' %}on{% endif %}" href="?status=resolved">Résolues <span class="count">{{ resolved }}</span></a>
+    </div>
+    <div class="card">
+      <div class="body" style="padding:0">
+        {% for c in concerns %}
+        <a class="concern-row" href="{% url 'dashboard:concern_detail' c.id %}">
+          <span class="sev-dot s{{ c.severity }}"></span>
+          <div class="cr-main">
+            <b>{{ c.client.code }} · {{ c.get_concern_type_display }}{% if c.location %} — {{ c.location }}{% endif %}</b>
+            <small>Ouverte le {{ c.opened_on|date:"d M Y" }} · {{ c.updates.count }} mise(s) à jour</small>
+          </div>
+          <span class="pill {% if c.status == 'RESOLVED' %}g{% elif c.status == 'IMPROVING' %}b{% else %}a{% endif %}">{{ c.get_status_display }}</span>
+        </a>
+        {% empty %}<p class="empty" style="padding:30px">Aucun suivi clinique {% if status == 'active' %}en cours{% else %}résolu{% endif %}.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head"><h2>Nouveau suivi</h2></div>
+    <div class="body">
+      <form method="post" class="docform">
+        {% csrf_token %}
+        <label class="dl">Client</label>
+        <select name="client" required>{% for c in clients %}<option value="{{ c.id }}">{{ c.code }} — {{ c.full_name }}</option>{% endfor %}</select>
+        <label class="dl">Type</label>
+        <select name="concern_type">{% for v,l in types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+        <label class="dl">Localisation</label>
+        <input type="text" name="location" placeholder="ex. talon gauche">
+        <label class="dl">Gravité</label>
+        <select name="severity"><option value="1">Légère</option><option value="2" selected>Modérée</option><option value="3">Sévère</option></select>
+        <label class="dl">Description</label>
+        <textarea name="description" rows="3" placeholder="État initial…"></textarea>
+        <div class="docactions"><button class="btn btn-approve" type="submit">Ouvrir le suivi</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

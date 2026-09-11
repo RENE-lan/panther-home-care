@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Équipe de soins{% endblock %}
+{% block content %}
+<div class="fam-hero"><div class="ai-head"><span class="brain">{% icon "caregivers" 18 %}</span>
+  <div><b>L'équipe qui accompagne {{ client.first_name }}</b><small>Les soignants qui connaissent le mieux votre proche.</small></div></div></div>
+<div class="team-grid">
+  {% for t in team %}
+  <div class="card team-card">
+    <div class="tc-av">{{ t.caregiver__first_name|first }}{{ t.caregiver__last_name|first }}</div>
+    <div class="tc-name">{{ t.caregiver__first_name }} {{ t.caregiver__last_name }}</div>
+    <div class="tc-sub">{{ t.caregiver__code }}</div>
+    {% if t.caregiver__languages %}<div class="tc-lang">{% icon "clients" 12 %} {{ t.caregiver__languages }}</div>{% endif %}
+    <div class="tc-visits"><b>{{ t.n }}</b> visite{{ t.n|pluralize }} réalisée{{ t.n|pluralize }}</div>
+  </div>
+  {% empty %}<div class="card"><p class="empty" style="padding:30px">L'équipe apparaîtra après les premières visites.</p></div>{% endfor %}
+</div>
+{% endblock %}

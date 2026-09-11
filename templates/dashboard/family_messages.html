@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Messages{% endblock %}
+{% block content %}
+<div class="card msg-card">
+  <div class="head"><h2>{% icon "inbox" 14 %} Échanges avec l'agence</h2></div>
+  <div class="body msg-thread">
+    {% for m in thread %}
+    <div class="msg-bubble {% if m.from_agency %}agency{% else %}me{% endif %}">
+      <div class="msg-body">{{ m.body }}</div>
+      <div class="msg-time">{% if m.from_agency %}Agence{% else %}Vous{% endif %} · {{ m.created_at|date:"d M · H:i" }}</div>
+    </div>
+    {% empty %}<p class="empty">Aucun message. Écrivez à l'agence ci-dessous.</p>{% endfor %}
+  </div>
+  <form method="post" class="msg-compose">
+    {% csrf_token %}
+    <input type="text" name="body" placeholder="Écrivez votre message…" required autocomplete="off">
+    <button class="btn btn-approve" type="submit">Envoyer</button>
+  </form>
+</div>
+{% endblock %}

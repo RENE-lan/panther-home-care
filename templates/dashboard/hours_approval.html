@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Approbation des heures — Panther Home Care{% endblock %}
+{% block heading %}Approbation des heures{% endblock %}
+{% block topbar_actions %}
+{% if rows %}<form method="post" action="{% url 'dashboard:approve_hours_all' %}" style="margin:0" onsubmit="return confirm('Approuver toutes les heures vérifiées en attente ?');">{% csrf_token %}<button class="btn btn-approve btn-sm" type="submit">{% icon "check" 15 %} Tout approuver</button></form>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "shield" 16 %}</span><b>Chaîne EVV → Paie</b></div>
+  <p>Pointage → visite vérifiée → <b>heures approuvées</b> → feuille de temps → paie. Seules les heures
+     approuvées ici sont incluses dans l'export de paie.</p>
+</div>
+<div class="kpis kpis-3">
+  <div class="kpi {% if pending_ct %}alert{% endif %}"><div class="label">À approuver</div><div class="val">{{ pending_ct }}</div><div class="delta">Visites vérifiées</div></div>
+  <div class="kpi"><div class="label">Approuvées</div><div class="val">{{ approved_ct }}</div><div class="delta">Prêtes pour la paie</div></div>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Soignant</th><th>Client</th><th>Date</th><th>Arrivée</th><th>Départ</th><th>Heures</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><b>{{ r.visit.caregiver.code|default:"—" }}</b></td>
+        <td>{{ r.visit.client.code }}</td>
+        <td>{{ r.visit.scheduled_start|date:"d M" }}</td>
+        <td>{% if r.visit.check_in_at %}{{ r.visit.check_in_at|date:"H:i" }}{% else %}—{% endif %}</td>
+        <td>{% if r.visit.check_out_at %}{{ r.visit.check_out_at|date:"H:i" }}{% else %}—{% endif %}</td>
+        <td><b>{{ r.hours }} h</b></td>
+        <td style="text-align:right"><form method="post" action="{% url 'dashboard:approve_hours' r.visit.id %}">{% csrf_token %}<button class="btn btn-approve btn-sm">Approuver</button></form></td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="empty">Toutes les heures vérifiées sont approuvées ✅</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

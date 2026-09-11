@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load icons l10n %}
+{% block title %}Planification — Panther Home Care{% endblock %}
+{% block heading %}Planification{% endblock %}
+{% block topbar_actions %}
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+<div class="sched-toolbar">
+  <div class="sched-nav">
+    <a class="btn btn-ghost btn-sm" href="?d={{ prev_offset }}">‹ Jour précédent</a>
+    <div class="sched-day">{{ day|date:"l d F Y" }}</div>
+    <a class="btn btn-ghost btn-sm" href="?d={{ next_offset }}">Jour suivant ›</a>
+  </div>
+  <div class="map-legend">
+    <span><i class="lg" style="background:#1f8a4c"></i> Terminée</span>
+    <span><i class="lg" style="background:#2b6cb0"></i> En cours</span>
+    <span><i class="lg" style="background:#8a97ab"></i> Planifiée</span>
+    <span><i class="lg" style="background:#d93a3a"></i> Non couverte</span>
+  </div>
+</div>
+
+<div class="card sched-card">
+  <div class="sched">
+    <div class="sched-head">
+      <div class="sched-name">Soignant</div>
+      <div class="sched-axis">
+        {% for h in hours %}<div class="tick">{{ h }}h</div>{% endfor %}
+      </div>
+    </div>
+
+    {% if unassigned %}
+    <div class="sched-row unassigned">
+      <div class="sched-name"><b>Non affecté</b><small>{{ unassigned|length }} visite(s)</small></div>
+      <div class="sched-track">
+        {% for h in hours %}<div class="col-line" style="left:{{ forloop.counter0 }}0%"></div>{% endfor %}
+        {% for b in unassigned %}
+          <a class="vblock uncovered" style="left:{{ b.left|unlocalize }}%;width:{{ b.width|unlocalize }}%"
+             href="{% url 'dashboard:visit_detail' b.visit.id %}" title="{{ b.label }}">{{ b.label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% for row in grid %}
+    <div class="sched-row">
+      <div class="sched-name">
+        <a href="{% url 'dashboard:caregiver_360' row.caregiver.id %}">{{ row.caregiver.code }}</a>
+        <small>{{ row.caregiver.full_name }}</small>
+      </div>
+      <div class="sched-track">
+        {% for h in hours %}<div class="col-line"></div>{% endfor %}
+        {% for b in row.blocks %}
+          <a class="vblock s-{{ b.status }}" style="left:{{ b.left|unlocalize }}%;width:{{ b.width|unlocalize }}%"
+             href="{% url 'dashboard:visit_detail' b.visit.id %}" title="{{ b.label }}">{{ b.label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}
+      <div class="empty" style="padding:34px">Aucune visite planifiée pour cette journée.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

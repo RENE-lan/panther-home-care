@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Demandes de visites — Panther Home Care{% endblock %}
+{% block heading %}Demandes de visites{% endblock %}
+{% block topbar_actions %}
+  {% if radar.uncovered %}
+  <form method="post" action="{% url 'dashboard:autofill_shifts' %}" style="margin:0"
+        onsubmit="return confirm('Laisser Panther CareMatch affecter automatiquement les meilleurs soignants aux visites non couvertes ?');">
+    {% csrf_token %}<button class="btn btn-approve btn-sm" type="submit">{% icon "ai" 15 %} Résoudre automatiquement</button>
+  </form>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="radar">
+  <div class="radar-cell"><div class="rv">{{ radar.pending }}</div><div class="rl">Demandes en attente</div></div>
+  <div class="radar-cell {% if radar.high_risk %}warn{% endif %}"><div class="rv">{{ radar.high_risk }}</div><div class="rl">Matchs à risque</div></div>
+  <div class="radar-cell {% if radar.late_risk %}warn{% endif %}"><div class="rv">{{ radar.late_risk }}</div><div class="rl">Risques de retard</div></div>
+  <div class="radar-cell {% if radar.uncovered %}warn{% endif %}"><div class="rv">{{ radar.uncovered }}</div><div class="rl">Visites non couvertes</div></div>
+  <div class="radar-cell"><div class="rv">{% icon "ai" 22 %}</div><div class="rl">CareMatch actif</div></div>
+</div>
+
+<div class="card">
+  <div class="head"><h2><span class="hdot a"></span> En attente d'approbation</h2></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>Client</th><th>Créneau</th><th>Compatibilité</th><th></th></tr></thead>
+    <tbody>
+    {% for req in pending %}
+      <tr>
+        <td><b>{{ req.caregiver.code }}</b><br><small style="color:var(--muted)">{{ req.caregiver.full_name }}</small></td>
+        <td>{{ req.visit.client.code }} — {{ req.visit.client.first_name }}</td>
+        <td>{{ req.visit.scheduled_start|date:"d M" }} · {{ req.visit.scheduled_start|time:"H:i" }}–{{ req.visit.scheduled_end|time:"H:i" }}</td>
+        <td><span style="font-weight:750;color:{% if req.score >= 85 %}var(--green){% elif req.score >= 65 %}var(--amber){% else %}var(--red){% endif %}">{{ req.score }}%</span></td>
+        <td style="text-align:right;white-space:nowrap">
+          <form method="post" action="{% url 'dashboard:decide_request' req.id 'approve' %}" style="display:inline">
+            {% csrf_token %}<button class="btn btn-approve btn-sm">Approuver</button></form>
+          <form method="post" action="{% url 'dashboard:decide_request' req.id 'deny' %}" style="display:inline">
+            {% csrf_token %}<button class="btn btn-ghost btn-sm">Refuser</button></form>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucune demande en attente.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if recent %}
+<div class="card">
+  <div class="head"><h2>Décisions récentes</h2></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>Client</th><th>Créneau</th><th>Statut</th></tr></thead>
+    <tbody>
+    {% for req in recent %}
+      <tr>
+        <td>{{ req.caregiver.code }}</td>
+        <td>{{ req.visit.client.code }}</td>
+        <td>{{ req.visit.scheduled_start|date:"d M H:i" }}</td>
+        <td>{% if req.status == 'APPROVED' %}<span class="pill g">Approuvée</span>{% else %}<span class="pill n">Refusée</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

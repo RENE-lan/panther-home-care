@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Prospects — Panther Home Care{% endblock %}
+{% block heading %}Prospects &amp; recommandations{% endblock %}
+{% block content %}
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Prospects dans le pipeline</div><div class="val">{{ total }}</div><div class="delta">CRM</div></div>
+  <div class="kpi"><div class="label">Nouveaux</div><div class="val">{{ new_leads }}</div><div class="delta">À contacter</div></div>
+  <div class="kpi"><div class="label">Taux de conversion</div><div class="val">{{ rate }}%</div><div class="delta">{{ converted }} converti(s)</div></div>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="kanban">
+      {% for st in stages %}
+      <div class="kan-col">
+        <div class="kan-head"><span>{{ st.label }}</span><span class="kan-count">{{ st.count }}</span></div>
+        <div class="kan-body">
+          {% for l in st.items %}
+          <div class="kan-card lead-card">
+            <div class="kan-av">{{ l.name|slice:":1" }}</div>
+            <div class="kan-meta">
+              <b>{{ l.name }}</b>
+              {% if l.care_need %}<small>{{ l.care_need }}</small>{% endif %}
+              <small class="kan-date">{{ l.get_source_display }}{% if l.phone %} · {{ l.phone }}{% endif %}</small>
+              {% if l.converted_client %}<span class="pill g" style="margin-top:5px">→ {{ l.converted_client.code }}</span>
+              {% elif st.key == 'ASSESSMENT' %}
+                <form method="post" action="{% url 'dashboard:convert_lead' l.id %}" style="margin-top:6px" onsubmit="return confirm('Convertir ce prospect en client actif ?');">{% csrf_token %}<button class="btn btn-approve btn-sm" style="width:100%">Convertir en client</button></form>
+              {% elif st.key != 'LOST' and st.key != 'CONVERTED' %}
+                <form method="post" action="{% url 'dashboard:lead_stage' l.id %}" style="margin-top:6px">{% csrf_token %}
+                  {% if st.key == 'NEW' %}<input type="hidden" name="stage" value="CONTACTED"><button class="btn btn-ghost btn-sm" style="width:100%">Marquer contacté</button>
+                  {% else %}<input type="hidden" name="stage" value="ASSESSMENT"><button class="btn btn-ghost btn-sm" style="width:100%">Passer en évaluation</button>{% endif %}
+                </form>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}<div class="kan-empty">—</div>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:640px;margin-top:16px">
+  <div class="head"><h2>Nouveau prospect</h2></div>
+  <div class="body">
+    <form method="post" class="docform">
+      {% csrf_token %}
+      <div class="two"><div><label class="dl">Nom</label><input type="text" name="name" required></div>
+        <div><label class="dl">Téléphone</label><input type="text" name="phone"></div></div>
+      <div class="two"><div><label class="dl">Source</label><select name="source">{% for v,l in sources %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="dl">Recommandé par</label><input type="text" name="referred_by" placeholder="Hôpital, médecin, famille…"></div></div>
+      <label class="dl">Besoin de soins</label><input type="text" name="care_need" placeholder="ex. Personnes âgées, mobilité réduite">
+      <label class="dl">Notes</label><textarea name="notes" rows="2"></textarea>
+      <div class="docactions"><button class="btn btn-approve" type="submit">Ajouter au pipeline</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

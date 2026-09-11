@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block heading %}Incidents{% endblock %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead><tr><th>Incident</th><th>Client</th><th>Gravité</th><th>Statut</th><th>Créé</th></tr></thead>
+    <tbody>
+    {% for i in incidents %}
+      <tr>
+        <td><b>{{ i.title }}</b></td>
+        <td>{{ i.client.code|default:"—" }}</td>
+        <td><span class="risk {{ i.severity }}">{{ i.get_severity_display }}</span></td>
+        <td><span class="pill {% if i.status == 'RESOLVED' %}g{% elif i.status == 'ESCALATED' %}r{% else %}n{% endif %}">{{ i.get_status_display }}</span></td>
+        <td>{{ i.created_at|date:"d M H:i" }}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucun incident.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

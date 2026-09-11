@@ -1,0 +1,12 @@
+{% extends "account/_auth_base.html" %}
+{% block title %}Déconnexion — Panther Home Care{% endblock %}
+{% block heading %}Se déconnecter{% endblock %}
+{% block sub %}Voulez-vous vraiment quitter votre session ?{% endblock %}
+{% block form %}
+<form method="post" action="{% url 'account_logout' %}">
+  {% csrf_token %}
+  {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+  <button class="btn btn-approve authsubmit" type="submit">Confirmer la déconnexion</button>
+</form>
+{% endblock %}
+{% block alt %}<a href="{% url 'dashboard:home' %}">Retour au tableau de bord</a>{% endblock %}

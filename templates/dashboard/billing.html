@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Facturation & paie — Panther Home Care{% endblock %}
+{% block heading %}Facturation &amp; paie{% endblock %}
+{% block topbar_actions %}
+  <a class="btn btn-approve btn-sm" href="{% url 'dashboard:invoice_new' %}">{% icon "dollar" 15 %} Nouvelle facture</a>
+  <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:margin' %}">{% icon "dollar" 15 %} Calculateur de marge</a>
+{% endblock %}
+{% block content %}
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Total facturé</div><div class="val">{{ kpis.billed|floatformat:0 }} $</div><div class="delta">Toutes périodes</div></div>
+  <div class="kpi alert"><div class="label">À encaisser</div><div class="val">{{ kpis.due|floatformat:0 }} $</div><div class="delta">Non payées</div></div>
+  <div class="kpi"><div class="label">Encaissé</div><div class="val">{{ kpis.paid|floatformat:0 }} $</div><div class="delta">Payées</div></div>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Ancienneté des créances (AR aging)</h2><span class="chip">Suivi des paiements</span></div>
+  <div class="body aging-grid">
+    <div class="aging-cell g"><div class="ag-label">À jour</div><div class="ag-val">{{ aging.current }} $</div></div>
+    <div class="aging-cell a"><div class="ag-label">1–30 jours</div><div class="ag-val">{{ aging.d30 }} $</div></div>
+    <div class="aging-cell o"><div class="ag-label">31–60 jours</div><div class="ag-val">{{ aging.d60 }} $</div></div>
+    <div class="aging-cell r"><div class="ag-label">60+ jours</div><div class="ag-val">{{ aging.d90 }} $</div></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "reports" 15 %}</span><h2>Générer les factures</h2></div></div>
+    <div class="body">
+      <form method="post" action="{% url 'dashboard:generate_invoices' %}" class="docform">
+        {% csrf_token %}
+        <label class="dl">Période (mois)</label>
+        <select name="period">{% for m in months %}<option value="{{ m }}">{{ m }}</option>{% endfor %}</select>
+        <p class="ai-disclaimer">Calcule les heures réalisées par client × tarif horaire, et crée une facture par client (sans doublon).</p>
+        <div class="docactions"><button class="btn btn-approve" type="submit">{% icon "check" 15 %} Générer</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "clock" 15 %}</span><h2>Export de paie</h2></div></div>
+    <div class="body">
+      <p style="margin:0 0 12px;color:var(--muted);font-size:13px">Export CSV des heures × taux horaire par soignant, prêt pour votre logiciel de paie.</p>
+      <a class="btn btn-ghost" href="{% url 'dashboard:payroll_csv' %}">{% icon "download" 15 %} Télécharger la paie (CSV)</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Factures</h2></div>
+  <table>
+    <thead><tr><th>Client</th><th>Période</th><th>Heures</th><th>Montant</th><th>Émise</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for i in invoices %}
+      <tr>
+        <td><b>{{ i.client.code }}</b></td>
+        <td>{{ i.period }}</td>
+        <td>{{ i.hours }} h</td>
+        <td><b>{{ i.amount }} $</b></td>
+        <td>{{ i.issued_date|date:"d M Y" }}</td>
+        <td>{% if i.status == 'PAID' %}<span class="paystat paid">● Payée{% if i.paid_on %} le {{ i.paid_on|date:"d M" }}{% endif %}</span>{% else %}<span class="paystat unpaid">● Non payée</span>{% endif %}</td>
+        <td style="text-align:right"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:invoice_print' i.id %}" target="_blank">Imprimer</a>{% if i.status != 'PAID' %}<form method="post" action="{% url 'dashboard:mark_invoice_paid' i.id %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm">Marquer payée</button></form>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="empty">Aucune facture. Générez-les ci-dessus.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Rentabilité par client</h2><span class="chip">Revenu vs coût soignant</span></div>
+  <table>
+    <thead><tr><th>Client</th><th>Revenu</th><th>Coût estimé</th><th>Marge</th><th>Marge %</th></tr></thead>
+    <tbody>
+    {% for r in profit_rows %}
+      <tr>
+        <td><b>{{ r.client.code }}</b></td>
+        <td>{{ r.revenue }} $</td>
+        <td>{{ r.cost }} $</td>
+        <td><b>{{ r.margin }} $</b></td>
+        <td><span class="pill {% if r.pct >= 35 %}g{% elif r.pct >= 15 %}a{% else %}r{% endif %}">{{ r.pct }}%</span></td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Générez des factures pour voir la rentabilité par client.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
