@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Temps réel — Panther Home Care{% endblock %}
+{% block heading %}Temps réel{% endblock %}
+{% block topbar_actions %}<span class="live-badge"><span class="live-dot"></span> EN DIRECT · <span id="liveTs">—</span></span>{% endblock %}
+{% block content %}
+<div class="kpis">
+  <div class="kpi"><div class="label">En cours maintenant</div><div class="val" id="kIn">—</div><div class="delta">Soignants au domicile</div></div>
+  <div class="kpi"><div class="label">Terminées aujourd'hui</div><div class="val" id="kDone">—</div><div class="delta">Sur {{ 0 }}<span id="kSched"></span></div></div>
+  <div class="kpi alert"><div class="label">En retard</div><div class="val" id="kLate">—</div><div class="delta">À contacter</div></div>
+  <div class="kpi alert"><div class="label">Non couvertes</div><div class="val" id="kUnc">—</div><div class="delta">À affecter</div></div>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="head"><h2><span class="live-dot"></span> En cours maintenant</h2></div>
+    <div class="body" id="inProgress"><p class="empty">Chargement…</p></div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="head"><h2><span class="hdot a"></span> En retard</h2></div>
+      <div class="body" id="lateList"><p class="empty">—</p></div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>Derniers pointages</h2></div>
+      <div class="body" id="recentList"><p class="empty">—</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+async function tick(){
+  try{
+    const r = await fetch("{% url 'dashboard:live_status' %}",{credentials:'include'});
+    const d = await r.json();
+    document.getElementById('liveTs').textContent = d.ts;
+    document.getElementById('kIn').textContent = d.counts.in_progress;
+    document.getElementById('kDone').textContent = d.counts.completed;
+    document.getElementById('kSched').textContent = ' / '+d.counts.scheduled;
+    document.getElementById('kLate').textContent = d.counts.late;
+    document.getElementById('kUnc').textContent = d.counts.uncovered;
+    document.getElementById('inProgress').innerHTML = d.in_progress.length
+      ? d.in_progress.map(x=>`<div class="row-item"><div class="l"><b>${esc(x.caregiver)}</b> chez ${esc(x.client)}<small>Depuis ${esc(x.since)}</small></div><span class="pill b">En cours</span></div>`).join('')
+      : '<p class="empty">Aucune visite en cours actuellement.</p>';
+    document.getElementById('lateList').innerHTML = d.late.length
+      ? d.late.map(x=>`<div class="row-item"><div class="l">${esc(x.caregiver)} · ${esc(x.client)}<small>${x.min} min de retard</small></div><span class="pill a">Retard</span></div>`).join('')
+      : '<p class="empty">Aucun retard.</p>';
+    document.getElementById('recentList').innerHTML = d.recent.length
+      ? d.recent.map(x=>`<div class="row-item"><div class="l">${esc(x.caregiver)} · ${esc(x.client)}<small>Arrivée ${esc(x.at)}</small></div></div>`).join('')
+      : '<p class="empty">—</p>';
+  }catch(e){}
+}
+tick(); setInterval(tick, 15000);
+</script>
+{% endblock %}

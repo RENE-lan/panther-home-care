@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Feuilles de temps — Panther Home Care{% endblock %}
+{% block heading %}Feuilles de temps{% endblock %}
+{% block topbar_actions %}
+  <button class="btn btn-ghost btn-sm" onclick="window.print()">{% icon "print" 15 %} Imprimer</button>
+{% endblock %}
+{% block content %}
+<div class="sched-toolbar">
+  <div class="sched-nav">
+    <a class="btn btn-ghost btn-sm" href="?w={{ prev }}">‹ Semaine précédente</a>
+    <div class="sched-day">{{ week_start|date:"d M" }} – {{ week_end|date:"d M Y" }}</div>
+    <a class="btn btn-ghost btn-sm" href="?w={{ next }}">Semaine suivante ›</a>
+  </div>
+</div>
+
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Heures totales</div><div class="val">{{ totals.hours }}</div><div class="delta">Équipe · cette semaine</div></div>
+  <div class="kpi"><div class="label">Visites terminées</div><div class="val">{{ totals.visits }}</div><div class="delta">Vérifiées EVV</div></div>
+  <div class="kpi"><div class="label">Soignants actifs</div><div class="val">{{ totals.caregivers }}</div><div class="delta">Avec heures pointées</div></div>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Résumé de l'équipe</h2></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>Visites</th><th>Ponctualité</th><th>Heures</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><b>{{ r.cg.code }}</b><br><small style="color:var(--muted)">{{ r.cg.full_name }}</small></td>
+        <td>{{ r.visits }}</td>
+        <td><span class="pill {% if r.ontime_pct >= 90 %}g{% elif r.ontime_pct >= 70 %}a{% else %}r{% endif %}">{{ r.ontime_pct }}%</span></td>
+        <td><b>{{ r.hours }} h</b></td>
+      </tr>
+    {% empty %}<tr><td colspan="4" class="empty">Aucune heure pointée cette semaine.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

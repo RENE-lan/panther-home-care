@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Candidat — Panther{% endblock %}
+{% block heading %}{{ a.first_name }} {{ a.last_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div><b style="font-size:16px">{{ a.first_name }} {{ a.last_name }}</b>
+      <div style="color:var(--muted)">{% if a.phone %}{{ a.phone }}{% endif %}{% if a.email %} · {{ a.email }}{% endif %}{% if a.source %} · {{ a.source }}{% endif %}</div>
+      {% if a.experience %}<div style="color:var(--muted)">Expérience : {{ a.experience }}</div>{% endif %}
+    </div>
+    {% if a.promoted_to %}<span class="pill g">Soignant {{ a.promoted_to.code }}</span>{% endif %}
+  </div>
+</div>
+
+<h3 class="sec-title">Flux de recrutement</h3>
+<div class="card">
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+    {% for st in steps %}
+      <span class="pill {% if st.done %}g{% elif st.current %}n{% else %}n{% endif %}" style="{% if st.current %}background:#0e1c38;color:#fff{% elif st.done %}{% else %}opacity:.55{% endif %}">{% if st.done %}✓ {% endif %}{{ st.label }}</span>
+      {% if not forloop.last %}<span style="color:var(--muted);align-self:center">→</span>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% if not a.promoted_to %}
+<div class="card">
+  <form method="post" action="{% url 'dashboard:applicant_advance' a.id %}">{% csrf_token %}
+    <label class="dl">Faire avancer / changer d'étape</label>
+    <select name="stage">
+      {% for st in steps %}<option value="{{ st.key }}" {% if st.key == next_stage %}selected{% endif %}>{{ st.label }}</option>{% endfor %}
+    </select>
+    <label class="dl">Note de cette étape (compte-rendu d'entretien, résultat de vérification…)</label>
+    <textarea name="note" rows="2" placeholder="Ex. Entretien concluant, disponible immédiatement."></textarea>
+    <label class="dl">Score d'évaluation (optionnel, /100)</label>
+    <input type="number" name="assessment_score" min="0" max="100" value="{% if a.assessment_score %}{{ a.assessment_score }}{% endif %}">
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-approve">{% if next_stage %}Passer à « {{ next_label }} »{% else %}Enregistrer l'étape{% endif %}</button>
+      {% if can_promote %}<button formaction="{% url 'dashboard:promote_applicant' a.id %}" class="btn btn-approve" onclick="return confirm('Promouvoir en soignant actif ?')">Promouvoir en soignant</button>{% endif %}
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<h3 class="sec-title">Historique</h3>
+<div class="card">
+  {% for e in events %}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
+      <span><b>{{ e.get_stage_display|default:e.stage }}</b>{% if e.note %} — {{ e.note }}{% endif %}<br><small style="color:var(--muted)">{{ e.actor.get_full_name|default:e.actor.username|default:"Système" }}</small></span>
+      <span style="color:var(--muted)">{{ e.at|date:"d/m/Y H:i" }}</span>
+    </div>
+  {% empty %}<p class="empty">Aucun événement.</p>{% endfor %}
+</div>
+{% endblock %}

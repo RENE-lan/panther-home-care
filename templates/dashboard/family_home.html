@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load icons static %}
+{% block title %}Espace famille — Panther Home Care{% endblock %}
+{% block heading %}Espace famille{% endblock %}
+{% block content %}
+<div class="fam-hero">
+  <div class="ai-head"><span class="brain">{% icon "clients" 18 %}</span>
+    <div><b>Suivi des soins de {{ client.first_name }}</b>
+      <small>Accès transparent en temps réel : planning, équipe, historique, bien-être, messages et factures.</small></div>
+  </div>
+  {% if avg_mood %}<div class="fam-well"><span class="fw-score {% if avg_mood >= 70 %}g{% elif avg_mood >= 45 %}a{% else %}r{% endif %}">{{ avg_mood }}%</span><span class="fw-lbl">Bien-être moyen</span></div>{% endif %}
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Prochaines visites</div><div class="val">{{ upcoming_count }}</div><div class="delta">Planifiées</div></div>
+  <div class="kpi"><div class="label">Équipe de soins</div><div class="val">{{ team|length }}</div><div class="delta">Soignants</div></div>
+  <div class="kpi {% if due_invoices %}alert{% endif %}"><div class="label">Factures à régler</div><div class="val">{{ due_invoices }}</div><div class="delta">En attente</div></div>
+  <div class="kpi"><div class="label">Messages</div><div class="val">{{ unread_messages }}</div><div class="delta">Non lus</div></div>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="card fam-live">
+      <div class="head"><h2><span class="live-dot"></span> Aujourd'hui — en direct</h2></div>
+      <div class="body">
+        {% for e in today_events %}
+        <div class="live-event t-{{ e.tone }}"><span class="le-time">{{ e.time }}</span><span class="le-dot"></span><span class="le-text">{{ e.text }}</span></div>
+        {% empty %}<p class="empty">Aucune visite prévue aujourd'hui.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><h2>{% icon "schedule" 14 %} Prochaine visite</h2><a class="chip-link" href="{% url 'dashboard:family_schedule' %}">Tout voir</a></div>
+      <div class="body">
+        {% if next_visit %}
+        <div class="reco">
+          <div class="av">{% if next_visit.caregiver %}{{ next_visit.caregiver.first_name|first }}{{ next_visit.caregiver.last_name|first }}{% else %}?{% endif %}</div>
+          <div class="meta"><b>{{ next_visit.scheduled_start|date:"l d F" }} · {{ next_visit.scheduled_start|time:"H:i" }}–{{ next_visit.scheduled_end|time:"H:i" }}</b>
+            <div class="sub">Soignant : {{ next_visit.caregiver.full_name|default:"En cours d'affectation" }} · {{ client.care_type|default:"Soins à domicile" }}</div></div>
+        </div>
+        {% else %}<p class="empty">Aucune visite planifiée.</p>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="head"><h2>{% icon "analytics" 14 %} Bien-être (dernières visites)</h2></div>
+      <div class="body"><div class="chart-wrap" style="height:200px"><canvas id="wellChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>Historique récent</h2><a class="chip-link" href="{% url 'dashboard:family_reports' %}">Tout voir</a></div>
+      <div class="body">
+        {% for r in recent_reports %}
+        <div class="row-item"><div class="l">Visite du {{ r.created_at|date:"d M" }}<small>{{ r.caregiver.full_name|default:"Soignant" }} · {{ r.get_mood_display }}{% if r.signed_by %} · ✔ signé{% endif %}</small></div><span class="pill g">Terminée</span></div>
+        {% empty %}<p class="empty">L'historique apparaîtra après les premières visites.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+{{ wellbeing|json_script:"welldata" }}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+(function(){
+  var el=document.getElementById('wellChart'); if(!el||typeof Chart==='undefined') return;
+  var W=JSON.parse(document.getElementById('welldata').textContent);
+  if(!W.labels.length){el.parentElement.innerHTML='<p class="empty">Pas encore de données.</p>';return;}
+  new Chart(el,{type:'line',data:{labels:W.labels,datasets:[{label:'Bien-être',data:W.moods,
+    borderColor:'#1f8a4c',backgroundColor:'rgba(31,138,76,.12)',borderWidth:2,tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#1f8a4c'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{display:false},ticks:{font:{family:'Inter',size:10}}},y:{min:0,max:100,grid:{color:'#eef1f5'},ticks:{callback:v=>v+'%',font:{family:'Inter'}}}}}});
+})();
+</script>
+{% endblock %}

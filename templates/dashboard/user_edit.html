@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Éditer utilisateur — Panther{% endblock %}
+{% block heading %}Éditer — {{ u.username }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:560px"><div class="body">
+  <form method="post" class="mtg-form">{% csrf_token %}
+    <div><label>Prénom</label><input name="first_name" value="{{ u.first_name }}"></div>
+    <div><label>Nom</label><input name="last_name" value="{{ u.last_name }}"></div>
+    <div class="full"><label>E-mail</label><input type="email" name="email" value="{{ u.email }}"></div>
+    <div class="full" style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-approve">Enregistrer</button><a class="btn btn-ghost" href="{% url 'dashboard:users' %}">Annuler</a></div>
+  </form>
+  <p style="color:var(--muted);font-size:12.5px;margin-top:12px">Le rôle, le mot de passe et l'activation se gèrent depuis la liste des utilisateurs.</p>
+</div></div>
+{% endblock %}

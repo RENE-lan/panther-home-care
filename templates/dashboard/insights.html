@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static icons %}
+{% block title %}Care Insights — Panther Home Care{% endblock %}
+{% block heading %}Care Insights{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "ai" 16 %}</span><b>Care Insights — vos notes de soins, transformées en actions</b></div>
+  <p>Chaque note est classée (fonctionnel, médical, clinique) et reçoit un niveau de gravité.
+     Les notes à surveiller remontent en haut. Les niveaux sont une <b>orientation, pas un diagnostic</b> — votre équipe garde le contrôle.</p>
+</div>
+
+<form class="filterbar wrap" method="get">
+  <input type="hidden" name="view" value="{{ view }}">
+  <label class="fld"><span>Client</span>
+    <select name="client"><option value="">Tous</option>
+      {% for c in clients %}<option value="{{ c.id }}" {% if f_client == c.id|stringformat:'s' %}selected{% endif %}>{{ c.code }}</option>{% endfor %}</select></label>
+  <label class="fld"><span>Soignant</span>
+    <select name="caregiver"><option value="">Tous</option>
+      {% for cg in caregivers %}<option value="{{ cg.id }}" {% if f_cg == cg.id|stringformat:'s' %}selected{% endif %}>{{ cg.code }}</option>{% endfor %}</select></label>
+  <label class="fld"><span>Du</span><input type="date" name="from" value="{{ f_from }}"></label>
+  <label class="fld"><span>Au</span><input type="date" name="to" value="{{ f_to }}"></label>
+  <button class="btn btn-ghost btn-sm" type="submit">{% icon "search" 14 %} Filtrer</button>
+</form>
+
+<div class="ins-toolbar">
+  <div class="tabs">
+    <a class="tab {% if view != 'stats' %}on{% endif %}" href="?view=list&client={{ f_client }}&caregiver={{ f_cg }}&from={{ f_from }}&to={{ f_to }}">Liste</a>
+    <a class="tab {% if view == 'stats' %}on{% endif %}" href="?view=stats&client={{ f_client }}&caregiver={{ f_cg }}&from={{ f_from }}&to={{ f_to }}">Statistiques</a>
+  </div>
+  <div class="ins-count">{{ total }} note{{ total|pluralize }} · <b>{{ attention }}</b> à surveiller</div>
+</div>
+
+{% if view == 'stats' %}
+{{ data_json|json_script:"idata" }}
+<div class="chart-grid">
+  <div class="card chart-card"><div class="head"><h2>Notes par catégorie</h2></div><div class="body"><div class="chart-wrap"><canvas id="cCat"></canvas></div></div></div>
+  <div class="card chart-card"><div class="head"><h2>Répartition par gravité</h2></div><div class="body"><div class="chart-wrap"><canvas id="cSev"></canvas></div></div></div>
+  <div class="card chart-card wide"><div class="head"><h2>Notes sur 14 jours</h2><span class="chip">À surveiller en orange</span></div><div class="body"><div class="chart-wrap"><canvas id="cDays"></canvas></div></div></div>
+  <div class="card"><div class="head"><h2>Clients à surveiller</h2></div><div class="body">
+    {% for c in stats.top_clients %}<div class="inc-row"><span>{{ c.code }}</span><b>{{ c.n }}</b></div>{% empty %}<p class="empty">Aucun</p>{% endfor %}</div></div>
+  <div class="card"><div class="head"><h2>Soignants (notes à surveiller)</h2></div><div class="body">
+    {% for c in stats.top_cg %}<div class="inc-row"><span>{{ c.code }}</span><b>{{ c.n }}</b></div>{% empty %}<p class="empty">Aucun</p>{% endfor %}</div></div>
+</div>
+{% else %}
+<div class="card">
+  <table>
+    <thead><tr><th>Gravité</th><th>Catégorie</th><th>Client</th><th>Soignant</th><th>Note</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for r in reports %}
+      <tr>
+        <td><span class="sev-dot s{{ r.insight_severity }}"></span> {{ sev_labels|dictkey:r.insight_severity }}</td>
+        <td><span class="cat-tag c-{{ r.insight_category }}">{{ cat_labels|dictkey:r.insight_category }}</span></td>
+        <td><b>{{ r.visit.client.code }}</b></td>
+        <td>{{ r.caregiver.code|default:"—" }}</td>
+        <td class="ins-note">{{ r.notes|default:"—"|truncatechars:90 }}</td>
+        <td style="white-space:nowrap">{{ r.created_at|date:"d M · H:i" }}</td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="empty">Aucune note pour ces filtres.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block body_extra %}
+{% if view == 'stats' %}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+const S = JSON.parse(document.getElementById('idata').textContent);
+const C={navy:'#0e1c38',orange:'#e8622a',green:'#1f8a4c',red:'#d93a3a',amber:'#e59a1c',blue:'#2b6cb0',muted:'#6b7688',line:'#e6eaf0'};
+Chart.defaults.font.family="Inter,sans-serif";Chart.defaults.font.size=11;Chart.defaults.color=C.muted;
+const grid={grid:{color:C.line,drawBorder:false}};const noLeg={legend:{display:false}};
+new Chart(cCat,{type:'doughnut',data:{labels:S.cat_labels,datasets:[{data:S.cat_counts,backgroundColor:[C.red,C.blue,C.green,'#c2cad6'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{boxWidth:10,usePointStyle:true,padding:12}}}}});
+new Chart(cSev,{type:'bar',data:{labels:['Aucune','Faible','Moyenne','Élevée'],datasets:[{data:S.sev_counts,backgroundColor:['#c2cad6',C.amber,'#e5731c',C.red],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:noLeg,scales:{x:{grid:{display:false}},y:{beginAtZero:true,...grid,ticks:{precision:0}}}}});
+new Chart(cDays,{type:'bar',data:{labels:S.day_labels,datasets:[{label:'Total',data:S.day_total,backgroundColor:'#dbe3ef',borderRadius:3},{label:'À surveiller',data:S.day_att,backgroundColor:C.orange,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false},stacked:false},y:{beginAtZero:true,...grid,ticks:{precision:0}}}}});
+</script>
+{% endif %}
+{% endblock %}

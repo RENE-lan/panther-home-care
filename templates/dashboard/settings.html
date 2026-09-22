@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load icons l10n %}
+{% block title %}Paramètres — Panther Home Care{% endblock %}
+{% block heading %}Paramètres{% endblock %}
+{% block content %}
+<div class="set-layout">
+  <div class="tabbar set-tabs" id="settabs">
+    <button class="tab on" data-t="profile">Mon profil</button>
+    <button class="tab" data-t="agency">Agence</button>
+    <button class="tab" data-t="users">Utilisateurs</button>
+    <button class="tab" data-t="security">Sécurité</button>
+    <button class="tab" data-t="notif">Notifications</button>
+    <button class="tab" data-t="evv">EVV</button>
+    <button class="tab" data-t="sched">Planification</button>
+    <button class="tab" data-t="billing">Facturation</button>
+    <button class="tab" data-t="ai">IA &amp; Automatisation</button>
+    <button class="tab" data-t="integ">Intégrations</button>
+    <button class="tab" data-t="audit">Audit</button>
+  </div>
+
+  <div class="set-body">
+    <!-- PROFILE -->
+    <div class="tabpane on" data-p="profile">
+      <div class="card"><div class="head"><h2>Mon profil</h2></div><div class="body">
+        <div class="inc-row"><span>Nom</span><b>{{ user.get_full_name|default:user.username }}</b></div>
+        <div class="inc-row"><span>Numéro d'identification</span><b>{{ user.id_number|default:"—" }}</b></div>
+        <div class="inc-row"><span>E-mail</span><b>{{ user.email }}</b></div>
+        <div class="inc-row"><span>Téléphone</span><b>{{ user.phone|default:"—" }}</b></div>
+        <div class="inc-row"><span>Rôle</span><b>{{ user.get_role_display }}</b></div>
+      </div></div>
+    </div>
+
+    <!-- AGENCY -->
+    <div class="tabpane" data-p="agency">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="agency">{% csrf_token %}
+        <div class="head"><h2>Agence</h2><span class="chip">Actif dans tout le système</span></div>
+        <div class="body">
+          <div class="two"><div><label class="dl">Nom de l'agence</label><input type="text" name="agency_name" value="{{ s.agency_name }}"></div>
+            <div><label class="dl">Devise</label><input type="text" name="currency" value="{{ s.currency }}" maxlength="6"></div></div>
+          <label class="dl">Adresse</label><input type="text" name="address" value="{{ s.address }}">
+          <div class="two"><div><label class="dl">E-mail de contact</label><input type="text" name="contact_email" value="{{ s.contact_email }}"></div>
+            <div><label class="dl">Téléphone</label><input type="text" name="contact_phone" value="{{ s.contact_phone }}"></div></div>
+          <div class="two"><div><label class="dl">Heures d'ouverture</label><input type="text" name="business_hours" value="{{ s.business_hours }}"></div>
+            <div><label class="dl">Durée de visite par défaut (min)</label><input type="number" name="default_visit_minutes" value="{{ s.default_visit_minutes }}"></div></div>
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- USERS -->
+    <div class="tabpane" data-p="users">
+      <div class="card"><div class="head"><h2>Utilisateurs &amp; rôles</h2><a class="chip-link" href="/admin/accounts/user/">Gérer dans l'admin</a></div>
+        <table><thead><tr><th>Utilisateur</th><th>Rôle</th><th>ID</th><th>E-mail</th></tr></thead><tbody>
+          {% for u in users %}<tr><td><b>{{ u.get_full_name|default:u.username }}</b></td><td><span class="pill n">{{ u.get_role_display }}</span></td><td>{{ u.id_number|default:"—" }}</td><td>{{ u.email }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="tabpane" data-p="security">
+      <div class="card"><div class="head"><h2>Sécurité</h2></div><div class="body">
+        <div class="inc-row"><span>Mot de passe</span><a class="btn btn-ghost btn-sm" href="{% url 'account_change_password' %}">Changer</a></div>
+        <div class="inc-row"><span>Double authentification (2FA)</span><b>{% if user.mfa_enabled %}<span class="pill g">Activée</span>{% else %}<span class="pill n">Désactivée</span>{% endif %}</b></div>
+        <div class="inc-row"><span>Connexion par ID / téléphone / e-mail</span><span class="pill g">Activée</span></div>
+        <div class="inc-row"><span>Adresses e-mail</span><a class="btn btn-ghost btn-sm" href="{% url 'account_email' %}">Gérer</a></div>
+        <p class="ai-disclaimer" style="margin-top:12px">L'historique de connexion détaillé est disponible dans l'onglet Audit.</p>
+      </div></div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="tabpane" data-p="notif">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="notifications">{% csrf_token %}
+        <div class="head"><h2>Notifications</h2></div><div class="body">
+          <label class="dl">Canaux</label>
+          <div class="chk-grid">
+            <label class="chk"><input type="checkbox" name="notify_email" {% if s.notify_email %}checked{% endif %}> E-mail</label>
+            <label class="chk"><input type="checkbox" name="notify_sms" {% if s.notify_sms %}checked{% endif %}> SMS</label>
+          </div>
+          <label class="dl">Alertes actives</label>
+          <div class="chk-grid">
+            <label class="chk"><input type="checkbox" name="alert_late" {% if s.alert_late %}checked{% endif %}> Soignant en retard</label>
+            <label class="chk"><input type="checkbox" name="alert_missed" {% if s.alert_missed %}checked{% endif %}> Visite manquée</label>
+            <label class="chk"><input type="checkbox" name="alert_incident" {% if s.alert_incident %}checked{% endif %}> Incident</label>
+            <label class="chk"><input type="checkbox" name="alert_cert" {% if s.alert_cert %}checked{% endif %}> Certification expirante</label>
+            <label class="chk"><input type="checkbox" name="alert_billing" {% if s.alert_billing %}checked{% endif %}> Facturation</label>
+          </div>
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- EVV -->
+    <div class="tabpane" data-p="evv">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="evv">{% csrf_token %}
+        <div class="head"><h2>Configuration EVV</h2><span class="chip">Pilote les alertes de retard</span></div><div class="body">
+          <p class="ai-disclaimer" style="margin:0 0 12px">Une visite est signalée « en retard » au-delà de ce seuil, ce qui déclenche l'alerte au coordinateur et l'analyse IA de remplacement.</p>
+          <div class="two"><div><label class="dl">Seuil de retard (minutes)</label><input type="number" name="late_threshold_min" value="{{ s.late_threshold_min }}"></div>
+            <div><label class="dl">Rayon de géorepérage (km)</label><input type="number" step="0.1" name="geofence_km" value="{{ s.geofence_km|unlocalize }}"></div></div>
+          <div class="chk-grid"><label class="chk"><input type="checkbox" name="require_gps" {% if s.require_gps %}checked{% endif %}> Exiger la position GPS au pointage</label></div>
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- SCHEDULING -->
+    <div class="tabpane" data-p="sched">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="scheduling">{% csrf_token %}
+        <div class="head"><h2>Règles de planification</h2></div><div class="body">
+          <div class="two"><div><label class="dl">Heures hebdo max / soignant</label><input type="number" name="max_weekly_hours" value="{{ s.max_weekly_hours }}"></div>
+            <div><label class="dl">Distance de trajet max (km)</label><input type="number" name="max_travel_km" value="{{ s.max_travel_km }}"></div></div>
+          <div class="chk-grid"><label class="chk"><input type="checkbox" name="auto_replacement" {% if s.auto_replacement %}checked{% endif %}> Rechercher automatiquement un remplaçant qualifié lors d'une annulation</label></div>
+          <p class="ai-disclaimer">Cette règle est utilisée par le moteur d'automatisations pour les visites non couvertes.</p>
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- BILLING -->
+    <div class="tabpane" data-p="billing">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="billing">{% csrf_token %}
+        <div class="head"><h2>Facturation &amp; paie</h2></div><div class="body">
+          <div class="two"><div><label class="dl">Tarif facturé par défaut ({{ s.currency }}/h)</label><input type="number" step="0.5" name="default_bill_rate" value="{{ s.default_bill_rate|unlocalize }}"></div>
+            <div><label class="dl">Taux soignant par défaut ({{ s.currency }}/h)</label><input type="number" step="0.5" name="default_pay_rate" value="{{ s.default_pay_rate|unlocalize }}"></div></div>
+          <div class="two"><div><label class="dl">Délai de paiement (jours)</label><input type="number" name="payment_terms_days" value="{{ s.payment_terms_days }}"></div>
+            <div><label class="dl">TVA / taxe (%)</label><input type="number" step="0.1" name="tax_rate" value="{{ s.tax_rate|unlocalize }}"></div></div>
+          <label class="dl">Préfixe de numéro de facture</label><input type="text" name="invoice_prefix" value="{{ s.invoice_prefix }}">
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- AI & AUTOMATION -->
+    <div class="tabpane" data-p="ai">
+      <form method="post" class="card docform"><input type="hidden" name="section" value="ai">{% csrf_token %}
+        <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>IA &amp; Automatisation</h2></div></div><div class="body">
+          <div class="chk-grid">
+            <label class="chk"><input type="checkbox" name="automation_enabled" {% if s.automation_enabled %}checked{% endif %}> Moteur d'automatisations actif</label>
+            <label class="chk"><input type="checkbox" name="ai_auto_fill" {% if s.ai_auto_fill %}checked{% endif %}> Autoriser l'IA à affecter automatiquement (sinon : recommandation + approbation)</label>
+          </div>
+          <label class="dl">Seuil de confiance de l'IA (%)</label><input type="number" name="ai_confidence_threshold" value="{{ s.ai_confidence_threshold }}" min="50" max="100">
+          <p class="ai-disclaimer">En dessous de ce seuil, l'IA recommande mais n'agit pas seule — validation humaine requise.</p>
+          <div class="docactions"><button class="btn btn-approve" type="submit">Enregistrer</button></div>
+        </div>
+      </form>
+    </div>
+
+    <!-- INTEGRATIONS -->
+    <div class="tabpane" data-p="integ">
+      <div class="card"><div class="head"><h2>Intégrations</h2></div><div class="body">
+        <div class="inc-row"><span>{% icon "ai" 14 %} IA (Anthropic/OpenAI)</span>{% if ai_ok %}<span class="pill g">Connectée</span>{% else %}<span class="pill n">Non configurée</span>{% endif %}</div>
+        <div class="inc-row"><span>{% icon "bell" 14 %} E-mail (SMTP)</span>{% if email_ok %}<span class="pill g">Connecté</span>{% else %}<span class="pill n">Console (dev)</span>{% endif %}</div>
+        <div class="inc-row"><span>{% icon "bell" 14 %} SMS (Twilio)</span>{% if sms_ok %}<span class="pill g">Connecté</span>{% else %}<span class="pill n">Non configuré</span>{% endif %}</div>
+        <div class="inc-row"><span>{% icon "reports" 14 %} Comptabilité (export CSV)</span><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:accounting_csv' %}">Exporter</a></div>
+        <div class="inc-row"><span>{% icon "schedule" 14 %} Calendrier (.ics par soignant)</span><span class="pill g">Disponible</span></div>
+        <p class="ai-disclaimer" style="margin-top:12px">Les clés d'intégration (IA, SMTP, Twilio) se configurent via les variables d'environnement au déploiement.</p>
+      </div></div>
+    </div>
+
+    <!-- AUDIT -->
+    <div class="tabpane" data-p="audit">
+      <div class="card"><div class="head"><h2>Audit &amp; activité</h2></div>
+        <table><thead><tr><th>Utilisateur</th><th>Action</th><th>Cible</th><th>Quand</th></tr></thead><tbody>
+          {% for a in audit %}<tr><td>{{ a.actor.get_full_name|default:a.actor.username|default:"système" }}</td><td>{{ a.action }}</td><td>{{ a.target|default:"—" }}</td><td>{{ a.created_at|date:"d M · H:i" }}</td></tr>
+          {% empty %}<tr><td colspan="4" class="empty">Aucune activité enregistrée.</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+document.querySelectorAll('#settabs .tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('#settabs .tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.set-body .tabpane').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelector('.set-body .tabpane[data-p="'+t.dataset.t+'"]').classList.add('on');
+  });
+});
+</script>
+{% endblock %}

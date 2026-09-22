@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Soignants{% endblock %}
+{% block topbar_actions %}{% if user.can_ops %}<a class="btn btn-approve btn-sm" href="{% url 'dashboard:caregiver_new' %}">{% icon "caregivers" 15 %} Nouveau soignant</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead><tr><th>Code</th><th>Nom</th><th>Compétences</th><th>Fiabilité</th><th>Ponctualité</th><th></th></tr></thead>
+    <tbody>
+    {% for c in caregivers %}
+      <tr>
+        <td><a class="lnk" href="{% url 'dashboard:caregiver_360' c.id %}"><b>{{ c.code }}</b></a></td>
+        <td><a class="lnk" href="{% url 'dashboard:caregiver_360' c.id %}">{{ c.full_name }}</a></td>
+        <td>{% for s in c.skills.all %}<span class="pill n" style="margin-right:4px">{{ s.name }}</span>{% endfor %}</td>
+        <td>{{ c.reliability_score }}%</td><td>{{ c.punctuality_score }}%</td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:caregiver_360' c.id %}">Ouvrir</a>
+          {% if user.can_finance %}<a class="btn btn-ghost btn-sm" href="{% url 'dashboard:payslip' c.id %}?download" target="_blank">{% icon "dollar" 13 %} Fiche de paie</a>{% endif %}
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="empty">Aucun soignant.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

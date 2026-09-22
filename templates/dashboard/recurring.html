@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Planification récurrente — Panther Home Care{% endblock %}
+{% block heading %}Planification récurrente{% endblock %}
+{% block content %}
+<div class="grid">
+  <div class="card">
+    <div class="head"><div class="ai-head"><span class="brain">{% icon "repeat" 15 %}</span><h2>Nouvelle « semaine type »</h2></div></div>
+    <div class="body">
+      <form method="post" class="docform">
+        {% csrf_token %}
+        <label class="dl">Client</label>
+        <select name="client" required>{% for c in clients %}<option value="{{ c.id }}">{{ c.code }} — {{ c.full_name }}</option>{% endfor %}</select>
+
+        <label class="dl">Soignant (optionnel)</label>
+        <select name="caregiver"><option value="">Laisser ouvert (non couvert)</option>
+          {% for cg in caregivers %}<option value="{{ cg.id }}">{{ cg.code }} — {{ cg.full_name }}</option>{% endfor %}</select>
+
+        <label class="dl">Jours de la semaine</label>
+        <div class="wd-grid">
+          {% for val, lbl in weekdays %}
+          <label class="wd"><input type="checkbox" name="weekdays" value="{{ val }}"> {{ lbl }}</label>
+          {% endfor %}
+        </div>
+
+        <div class="docform two">
+          <div><label class="dl">Heure de début</label><input type="time" name="start_time" value="09:00" required></div>
+          <div><label class="dl">Durée (min)</label><input type="number" name="duration" value="120" min="30" step="30"></div>
+        </div>
+        <div class="docform two">
+          <div><label class="dl">À partir du</label><input type="date" name="start_date" value="{{ today }}" required></div>
+          <div><label class="dl">Nombre de semaines</label><input type="number" name="weeks" value="4" min="1" max="26"></div>
+        </div>
+
+        <div class="docactions">
+          <button class="btn btn-approve" type="submit">{% icon "calendarplus" 15 %} Générer les visites</button>
+        </div>
+        <p class="ai-disclaimer">Les visites récurrentes sont créées instantanément et apparaissent dans la planification.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head"><h2>Planifications actives</h2></div>
+    <div class="body" style="padding:0">
+      {% for s in schedules %}
+      <div class="rec-row">
+        <div>
+          <b>{{ s.client.code }}</b> — {{ s.client.first_name }}
+          <small>{{ s.weekday_list|join:", " }} · {{ s.start_time|time:"H:i" }} · {{ s.weeks }} sem · {{ s.caregiver.code|default:"Non affecté" }}</small>
+        </div>
+        <span class="pill {% if s.active %}g{% else %}n{% endif %}">{% if s.active %}Active{% else %}Inactive{% endif %}</span>
+      </div>
+      {% empty %}<p class="empty" style="padding:26px">Aucune planification récurrente pour le moment.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

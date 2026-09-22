@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Couverture — Panther{% endblock %}
+{% block heading %}Couverture des visites{% endblock %}
+{% block content %}
+<div class="wq-hero">
+  <div class="eyebrow">{% icon "sparkles" 14 %} PANTHER CARE INTELLIGENCE</div>
+  <div class="sum">{{ gaps|length }} visite(s) sans soignant confirmé. Panther classe les meilleurs remplaçants — vous approuvez.</div>
+  <div class="tag">L'IA propose. Vous décidez. Panther exécute.</div>
+</div>
+
+{% for g in gaps %}
+<div class="gap">
+  <div class="gap-head {{ g.level }}">
+    <div>
+      <div class="gap-title">{% if g.level == 'high' %}🔴 Lacune de couverture — haut risque{% else %}🟠 Lacune de couverture{% endif %}</div>
+      <div class="gap-sub"><b>{{ g.client.code }} — {{ g.client.full_name }}</b> · {{ g.visit.scheduled_start|date:"D d M · H:i" }}–{{ g.visit.scheduled_end|time:"H:i" }} · commence dans {{ g.mins }} min · aucun soignant confirmé</div>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:client_360' g.client.id %}">Dossier</a>
+  </div>
+  <div class="gap-cands">
+    {% for c in g.cards %}
+    <div class="cand {% if forloop.first %}top{% endif %}">
+      <div class="cand-top">
+        <div><b>{{ c.cg.code }} — {{ c.cg.full_name }}</b>{% if forloop.first %}<span class="cand-badge">Recommandé</span>{% endif %}</div>
+        <span class="cand-score">{{ c.score }}%</span>
+      </div>
+      <div class="cand-meta">{% if c.km is not None %}{{ c.km }} km · {% endif %}charge {{ c.workload|lower }}{% if c.continuity %} · {{ c.continuity }} visite(s) avec le client{% endif %}</div>
+      {% if forloop.first %}
+      <div class="cand-why">
+        {% for label, ok in c.checklist %}<span class="chk {% if ok %}yes{% else %}no{% endif %}">{% if ok %}✓{% else %}!{% endif %} {{ label }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="{% url 'dashboard:approve_assignment' g.visit.id %}" style="margin-top:10px">{% csrf_token %}
+        <input type="hidden" name="caregiver_id" value="{{ c.cg.id }}">
+        <button class="btn {% if forloop.first %}btn-approve{% else %}btn-ghost{% endif %} btn-sm">{% if forloop.first %}{% icon "check" 14 %} Approuver l'affectation{% else %}Choisir{% endif %}</button>
+      </form>
+    </div>
+    {% empty %}<div class="conx-empty" style="padding:16px">Aucun soignant disponible — proposez un remplaçant manuellement.</div>{% endfor %}
+  </div>
+</div>
+{% empty %}
+<div class="card"><div style="text-align:center;padding:44px 20px">
+  <div style="width:56px;height:56px;border-radius:50%;background:#eafaf0;color:var(--green);display:grid;place-items:center;margin:0 auto 14px">{% icon "check" 26 %}</div>
+  <div style="font-weight:700;color:var(--ink);font-size:16px">Toutes les visites sont couvertes ✓</div>
+  <div style="color:var(--muted);margin-top:4px">Aucune lacune de couverture dans les 7 prochains jours.</div>
+</div></div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Nouvel utilisateur{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <div class="head"><h2>{% icon "clients" 15 %} Créer un utilisateur &amp; donner l'accès</h2></div>
+  <div class="body">
+    <form method="post" class="docform">{% csrf_token %}
+      <div class="two"><div><label class="dl">Prénom</label><input type="text" name="first_name"></div>
+        <div><label class="dl">Nom</label><input type="text" name="last_name"></div></div>
+      <div class="two"><div><label class="dl">Nom d'utilisateur *</label><input type="text" name="username" required></div>
+        <div><label class="dl">Téléphone</label><input type="text" name="phone"></div></div>
+      <label class="dl">E-mail</label><input type="email" name="email">
+      <div class="two"><div><label class="dl">Mot de passe *</label><input type="text" name="password" placeholder="min. 8 caractères" required></div>
+        <div><label class="dl">Accès (rôle) *</label><select name="role">
+          {% for val,label in roles %}{% if val != 'FAMILY' %}<option value="{{ val }}" {% if val == 'COORDINATOR' %}selected{% endif %}>{{ label }}</option>{% endif %}{% endfor %}
+        </select></div></div>
+      <p class="ai-disclaimer">Un numéro d'identification est généré automatiquement. Manager et Administrateur reçoivent l'accès complet.</p>
+      <div class="docactions"><button class="btn btn-approve" type="submit">Créer l'utilisateur</button><a class="btn btn-ghost" href="{% url 'dashboard:users' %}">Annuler</a></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

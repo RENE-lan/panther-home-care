@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Notifications{% endblock %}
+{% block topbar_actions %}
+  {% if unread %}
+  <form method="post" style="margin:0">{% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">{% icon "check" 15 %} Tout marquer comme lu</button>
+  </form>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="body" style="padding:0">
+    {% for n in notifications %}
+      <div class="notif {% if not n.read %}unread{% endif %}">
+        <span class="notif-dot {% if n.level == 'CRITICAL' %}r{% elif n.level == 'ATTENTION' %}a{% else %}b{% endif %}"></span>
+        <div class="notif-main">
+          <div class="notif-title">{{ n.title }}{% if not n.read %} <span class="pill r">Nouveau</span>{% endif %}</div>
+          {% if n.body %}<div class="notif-body">{{ n.body }}</div>{% endif %}
+        </div>
+        <div class="notif-time">{{ n.created_at|date:"d M · H:i" }}</div>
+      </div>
+    {% empty %}
+      <p class="empty" style="padding:34px">Aucune notification.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

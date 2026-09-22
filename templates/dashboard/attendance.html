@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load icons l10n %}
+{% block title %}Présences — Panther Home Care{% endblock %}
+{% block heading %}Présences de l'équipe{% endblock %}
+{% block content %}
+<div class="kpis kpis-3">
+  <div class="kpi"><div class="label">Pointages affichés</div><div class="val">{{ entries|length }}</div><div class="delta">Filtre courant</div></div>
+  <div class="kpi"><div class="label">Heures totales</div><div class="val">{{ total }}</div><div class="delta">Somme affichée</div></div>
+  <div class="kpi {% if open_count %}alert{% endif %}"><div class="label">En service maintenant</div><div class="val">{{ open_count }}</div><div class="delta">Non pointés en sortie</div></div>
+</div>
+
+<form class="filterbar wrap" method="get">
+  <label class="fld"><span>Employé</span>
+    <select name="user"><option value="">Tous</option>
+      {% for u in users %}<option value="{{ u.id }}" {% if f_user == u.id|stringformat:'s' %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></label>
+  <label class="fld"><span>Date</span><input type="date" name="date" value="{{ f_date }}"></label>
+  <button class="btn btn-ghost btn-sm" type="submit">{% icon "search" 14 %} Filtrer</button>
+</form>
+
+<div class="card">
+  <div class="head"><h2>Pointages · ajustables</h2><span class="chip">Admin peut modifier</span></div>
+  <table>
+    <thead><tr><th>Employé</th><th>Entrée</th><th>Sortie</th><th>Heures</th><th></th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td><b>{{ e.user.get_full_name|default:e.user.username }}</b><br><small style="color:var(--muted)">{{ e.user.get_role_display }}</small></td>
+        <td colspan="3">
+          <form method="post" action="{% url 'dashboard:edit_time' e.id %}" class="att-form">
+            {% csrf_token %}
+            <input type="datetime-local" name="clock_in" value="{{ e.clock_in|date:'Y-m-d\TH:i' }}">
+            <input type="datetime-local" name="clock_out" value="{% if e.clock_out %}{{ e.clock_out|date:'Y-m-d\TH:i' }}{% endif %}">
+            <span class="att-hours">{% if e.hours %}{{ e.hours }} h{% else %}en cours{% endif %}{% if e.adjusted %} · ajusté{% endif %}</span>
+            <button class="btn btn-ghost btn-sm" type="submit">Enregistrer</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucun pointage.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

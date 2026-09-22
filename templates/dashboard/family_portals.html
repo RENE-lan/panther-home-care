@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Portail familial{% endblock %}
+{% block content %}
+<div class="fam-hero"><div class="ai-head"><span class="brain">{% icon "clients" 18 %}</span>
+  <div><b>Portails familiaux</b><small>Ouvrez le portail de chaque famille pour voir ce qu'elle voit (planning, bien-être, équipe, factures).</small></div></div></div>
+<form class="search" method="get"><input name="q" value="{{ q }}" placeholder="Rechercher un client…"><button class="btn btn-ghost">Rechercher</button></form>
+<div class="card">
+  <table><thead><tr><th>Client</th><th>Compte famille</th><th></th></tr></thead><tbody>
+    {% for c in clients %}<tr>
+      <td><a class="lnk" href="{% url 'dashboard:client_360' c.id %}"><b>{{ c.code }}</b></a> — {{ c.full_name }}</td>
+      <td>{% if c.family_user %}<span class="paystat paid">● {{ c.family_user.get_full_name|default:c.family_user.username }}</span>{% else %}<span style="color:var(--muted)">Aucun compte lié</span>{% endif %}</td>
+      <td style="text-align:right"><a class="btn btn-approve btn-sm" href="{% url 'dashboard:family_preview' c.id %}">{% icon "clients" 13 %} Ouvrir le portail</a></td>
+    </tr>{% empty %}<tr><td colspan="3" class="empty">Aucun client.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

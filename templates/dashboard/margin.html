@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% load icons %}
+{% block title %}Calculateur de marge — Panther Home Care{% endblock %}
+{% block heading %}Calculateur de rentabilité{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "dollar" 16 %}</span><b>Simulez votre marge brute</b></div>
+  <p>Ajustez le nombre de visites, la durée, les tarifs et les frais généraux — la marge se recalcule instantanément.
+     Un outil de planification pour décider quels contrats accepter et à quel prix.</p>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="head"><h2>Paramètres</h2></div>
+    <div class="body docform">
+      <label class="dl">Visites par semaine</label>
+      <input type="number" id="mVisits" value="20" min="1" oninput="calc()">
+      <label class="dl">Durée moyenne (heures)</label>
+      <input type="number" id="mHours" value="3" min="0.5" step="0.5" oninput="calc()">
+      <div class="two">
+        <div><label class="dl">Tarif facturé ($/h)</label><input type="number" id="mBill" value="{{ avg_bill|unlocalize }}" step="0.5" oninput="calc()"></div>
+        <div><label class="dl">Coût soignant ($/h)</label><input type="number" id="mPay" value="{{ avg_pay|unlocalize }}" step="0.5" oninput="calc()"></div>
+      </div>
+      <label class="dl">Frais généraux (% du revenu)</label>
+      <input type="number" id="mOverhead" value="15" min="0" max="80" oninput="calc()">
+      <label class="dl">Horizon (semaines)</label>
+      <input type="number" id="mWeeks" value="4" min="1" oninput="calc()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head"><h2>Résultat</h2></div>
+    <div class="body">
+      <div class="margin-hero">
+        <div class="mh-val" id="rMargin">—</div>
+        <div class="mh-label">Marge brute · <span id="rMarginPct">—</span></div>
+        <div class="margin-bar"><i id="rBar"></i></div>
+      </div>
+      <div class="inc-row"><span>Heures totales</span><b id="rHours">—</b></div>
+      <div class="inc-row"><span>Revenu (facturé)</span><b id="rRevenue">—</b></div>
+      <div class="inc-row"><span>Coût soignants</span><b id="rLabor">—</b></div>
+      <div class="inc-row"><span>Frais généraux</span><b id="rOverhead">—</b></div>
+      <div class="inc-row total"><span>Marge brute</span><b id="rMargin2">—</b></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+function n(id){return parseFloat(document.getElementById(id).value)||0;}
+function money(x){return Math.round(x).toLocaleString('fr-FR')+' $';}
+function calc(){
+  const visits=n('mVisits'),hrs=n('mHours'),bill=n('mBill'),pay=n('mPay'),oh=n('mOverhead'),weeks=n('mWeeks');
+  const totalHours=visits*hrs*weeks;
+  const revenue=totalHours*bill;
+  const labor=totalHours*pay;
+  const overhead=revenue*oh/100;
+  const margin=revenue-labor-overhead;
+  const pct=revenue>0?Math.round(margin/revenue*100):0;
+  document.getElementById('rHours').textContent=totalHours.toLocaleString('fr-FR')+' h';
+  document.getElementById('rRevenue').textContent=money(revenue);
+  document.getElementById('rLabor').textContent='– '+money(labor);
+  document.getElementById('rOverhead').textContent='– '+money(overhead);
+  document.getElementById('rMargin').textContent=money(margin);
+  document.getElementById('rMargin2').textContent=money(margin);
+  document.getElementById('rMarginPct').textContent=pct+'%';
+  const bar=document.getElementById('rBar');
+  bar.style.width=Math.max(0,Math.min(100,pct))+'%';
+  bar.style.background=pct>=35?'#1f8a4c':(pct>=15?'#e59a1c':'#d93a3a');
+  document.getElementById('rMargin').style.color=pct>=35?'#1a7541':(pct>=15?'#9a6a10':'#a82727');
+}
+calc();
+</script>
+{% endblock %}

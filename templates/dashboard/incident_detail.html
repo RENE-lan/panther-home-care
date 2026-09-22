@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Incident — Panther{% endblock %}
+{% block heading %}Incident{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="body">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--ink)">{{ inc.title }}</div>
+        <div style="color:var(--muted);margin-top:4px">
+          {% if inc.client %}Client {{ inc.client.code }}{% endif %}{% if inc.caregiver %} · {{ inc.caregiver.full_name }}{% endif %} · {{ inc.created_at|date:"d/m/Y H:i" }}
+        </div>
+      </div>
+      <span class="paystat" style="background:{% if inc.severity == 'CRITICAL' %}#fbe6e6;color:#a3323a{% elif inc.severity == 'HIGH' %}#fdeaea;color:#c93a3a{% elif inc.severity == 'MEDIUM' %}#fdf1dc;color:#9a6a10{% else %}#eef1f5;color:#54607a{% endif %}">{{ inc.get_severity_display }}</span>
+    </div>
+    {% if inc.description %}<p style="margin:14px 0 0;color:var(--ink)">{{ inc.description }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="wq-sec"><span class="dot" style="background:var(--orange)"></span><h3>Suivi de l'incident</h3></div>
+<div class="card"><div class="body">
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    {% for st in steps %}
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;
+          {% if st.current %}background:var(--navy);color:#fff{% elif st.done %}background:#eafaf0;color:var(--green){% else %}background:var(--bg);color:var(--muted){% endif %}">{% if st.done and not st.current %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+        <span style="font-size:13px;font-weight:{% if st.current %}700{% else %}500{% endif %};color:{% if st.current %}var(--ink){% elif st.done %}var(--green){% else %}var(--muted){% endif %}">{{ st.label }}</span>
+      </div>
+      {% if not forloop.last %}<span style="flex:1;min-width:20px;height:2px;background:{% if st.done %}#bfe6cd{% else %}var(--line){% endif %};margin:0 6px"></span>{% endif %}
+    {% endfor %}
+  </div>
+  {% if office %}
+  <form method="post" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">{% csrf_token %}
+    <label class="dl" style="display:block;font-weight:700;font-size:12px;margin-bottom:6px">Mettre à jour le statut</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select name="status" style="max-width:220px">{% for k,l in status_choices %}<option value="{{ k }}" {% if k == inc.status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      <input name="note" placeholder="Note (optionnel)" style="flex:1;min-width:180px">
+      <button class="btn btn-approve btn-sm">Enregistrer</button>
+    </div>
+  </form>
+  {% endif %}
+</div></div>
+
+<div class="wq-sec"><span class="dot" style="background:var(--orange)"></span><h3>Photos &amp; vidéos</h3><span class="count">{{ attachments|length }}</span></div>
+<div class="card"><div class="body">
+  <form method="post" enctype="multipart/form-data" style="margin-bottom:16px">{% csrf_token %}
+    <input type="hidden" name="upload" value="1">
+    <label class="uploadzone">
+      <input type="file" name="media" accept="image/*,video/*" multiple capture="environment" style="display:none" onchange="this.closest('form').querySelector('.fn').textContent=this.files.length+' fichier(s) sélectionné(s)'">
+      <span style="font-size:26px">{% icon "camera" 26 %}</span>
+      <b>Ajouter une photo ou une vidéo</b>
+      <span style="color:var(--muted);font-size:12.5px">Prenez une photo/vidéo ou choisissez un fichier (max 60 Mo)</span>
+      <span class="fn" style="color:var(--orange);font-weight:600;font-size:12.5px"></span>
+    </label>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <input name="caption" placeholder="Légende (optionnel)" style="flex:1">
+      <button class="btn btn-approve btn-sm">Téléverser</button>
+    </div>
+  </form>
+  <div class="media-grid">
+    {% for a in attachments %}
+      <div class="media-item">
+        {% if a.kind == 'PHOTO' %}<a href="{{ a.file.url }}" target="_blank"><img src="{{ a.file.url }}" alt="{{ a.caption }}"></a>
+        {% elif a.kind == 'VIDEO' %}<video src="{{ a.file.url }}" controls preload="metadata"></video>
+        {% else %}<a class="filecard" href="{{ a.file.url }}" target="_blank">{% icon "reports" 22 %}<span>Fichier</span></a>{% endif %}
+        <div class="cap">{% if a.caption %}{{ a.caption }} · {% endif %}{{ a.at|date:"d/m H:i" }}</div>
+      </div>
+    {% empty %}<p class="empty" style="grid-column:1/-1">Aucune pièce jointe pour l'instant.</p>{% endfor %}
+  </div>
+</div></div>
+
+<div class="wq-sec"><span class="dot" style="background:var(--muted)"></span><h3>Historique</h3></div>
+<div class="card"><div class="body">
+  {% for e in events %}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
+      <span>{% if e.status %}<b>{{ e.get_status_display|default:e.status }}</b>{% endif %}{% if e.note %} {{ e.note }}{% endif %}<br><small style="color:var(--muted)">{% if e.actor %}{{ e.actor.get_full_name|default:e.actor.username }}{% else %}Système{% endif %}</small></span>
+      <span style="color:var(--muted);white-space:nowrap">{{ e.at|date:"d/m H:i" }}</span>
+    </div>
+  {% empty %}<p class="empty">Aucun événement.</p>{% endfor %}
+</div></div>
+{% endblock %}

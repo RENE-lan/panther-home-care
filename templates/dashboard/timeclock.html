@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Pointeuse — Panther Home Care{% endblock %}
+{% block heading %}Pointeuse{% endblock %}
+{% block topbar_actions %}{% if is_office %}<a class="btn btn-ghost btn-sm" href="{% url 'dashboard:attendance' %}">{% icon "clock" 15 %} Présences de l'équipe</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="tc-hero {% if open_entry %}on{% endif %}">
+  {% if open_entry %}
+    <div class="tc-status"><span class="live-dot"></span> En service depuis {{ open_entry.clock_in|date:"H:i" }}</div>
+    <form method="post" action="{% url 'dashboard:timeclock_punch' %}">{% csrf_token %}
+      <button class="btn btn-ghost tc-btn" type="submit">{% icon "logout" 18 %} Pointer la sortie</button></form>
+  {% else %}
+    <div class="tc-status off">Vous n'êtes pas en service</div>
+    <form method="post" action="{% url 'dashboard:timeclock_punch' %}">{% csrf_token %}
+      <button class="btn btn-approve tc-btn" type="submit">{% icon "clock" 18 %} Pointer l'entrée</button></form>
+  {% endif %}
+  <div class="tc-week">Cette semaine : <b>{{ week_hours }} h</b></div>
+</div>
+
+<div class="card">
+  <div class="head"><h2>Mes pointages</h2></div>
+  <table>
+    <thead><tr><th>Date</th><th>Entrée</th><th>Sortie</th><th>Heures</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td>{{ e.clock_in|date:"d M Y" }}</td>
+        <td>{{ e.clock_in|date:"H:i" }}</td>
+        <td>{% if e.clock_out %}{{ e.clock_out|date:"H:i" }}{% else %}<span class="pill b">En cours</span>{% endif %}</td>
+        <td>{% if e.hours %}<b>{{ e.hours }} h</b>{% else %}—{% endif %}{% if e.adjusted %} <small style="color:var(--muted)">(ajusté)</small>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="4" class="empty">Aucun pointage encore. Pointez votre entrée ci-dessus.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

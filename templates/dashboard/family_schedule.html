@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Planning de {{ client.first_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="head"><h2>Prochaines visites</h2></div>
+  <div class="body">
+    {% for v in upcoming %}
+    <div class="row-item">
+      <div class="l">{{ v.scheduled_start|date:"l d M" }} · {{ v.scheduled_start|time:"H:i" }}–{{ v.scheduled_end|time:"H:i" }}
+        <small>Soignant : {{ v.caregiver.full_name|default:"En cours d'affectation" }}</small></div>
+      <span class="pill {% if v.status == 'IN_PROGRESS' %}b{% elif v.is_uncovered %}a{% else %}n{% endif %}">{{ v.get_status_display }}</span>
+    </div>
+    {% empty %}<p class="empty">Aucune visite à venir.</p>{% endfor %}
+  </div>
+</div>
+<div class="card">
+  <div class="head"><h2>Visites passées</h2></div>
+  <div class="body">
+    {% for v in past %}
+    <div class="row-item">
+      <div class="l">{{ v.scheduled_start|date:"d M Y" }} · {{ v.scheduled_start|time:"H:i" }}
+        <small>Soignant : {{ v.caregiver.full_name|default:"—" }}</small></div>
+      <span class="pill g">Terminée</span>
+    </div>
+    {% empty %}<p class="empty">Aucune visite passée.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

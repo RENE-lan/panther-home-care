@@ -1,0 +1,13 @@
+{% extends "account/_auth_base.html" %}
+{% block title %}Connexion {{ provider }} — Panther Home Care{% endblock %}
+{% block heading %}Connexion {{ provider }}{% endblock %}
+{% block sub %}Cette méthode de connexion n'est pas encore activée.{% endblock %}
+{% block form %}
+<div class="notice-card">
+  <p>La connexion via <b>{{ provider }}</b> nécessite une configuration OAuth par
+  l'administrateur. Elle sera disponible dès que les identifiants seront renseignés.</p>
+  <p class="muted">En attendant, utilisez votre adresse e-mail et mot de passe.</p>
+</div>
+<a class="btn btn-approve authsubmit" href="{% url 'account_login' %}">Retour à la connexion</a>
+{% endblock %}
+{% block alt %}Pas encore de compte ? <a href="{% url 'account_signup' %}">Créer un compte</a>{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Automatisations — Panther Home Care{% endblock %}
+{% block heading %}Automatisations{% endblock %}
+{% block topbar_actions %}
+<form method="post" style="margin:0">{% csrf_token %}<button class="btn btn-approve btn-sm" type="submit">{% icon "ai" 15 %} Exécuter maintenant</button></form>
+{% endblock %}
+{% block content %}
+<div class="info-banner">
+  <div class="ai-head"><span class="brain">{% icon "repeat" 16 %}</span><b>Moteur de règles</b></div>
+  <p>Ces règles s'exécutent automatiquement (planifiez-les chaque nuit) ou à la demande via « Exécuter maintenant ».</p>
+</div>
+<div class="grid ov4">
+  <div class="card"><div class="body"><div class="ai-head"><span class="brain">{% icon "award" 15 %}</span><b>Rappels de certification</b></div><p class="rule-desc">Certifications expirant sous 30 jours → notification au soignant (app + e-mail).</p></div></div>
+  <div class="card"><div class="body"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><b>Visites non couvertes</b></div><p class="rule-desc">Visite non couverte sous 48 h → CareMatch trouve le meilleur profil et alerte le bureau.</p></div></div>
+  <div class="card"><div class="body"><div class="ai-head"><span class="brain">{% icon "dollar" 15 %}</span><b>Factures en retard</b></div><p class="rule-desc">Facture impayée depuis 30+ jours → marquée « En retard » et signalée au bureau.</p></div></div>
+  <div class="card"><div class="body"><div class="ai-head"><span class="brain">{% icon "reports" 15 %}</span><b>Facturation mensuelle</b></div><p class="rule-desc">Le 1er du mois → génération automatique des factures du mois précédent.</p></div></div>
+</div>
+<div class="card"><div class="body">
+  <b>Planification automatique</b>
+  <p class="rule-desc">Ces règles peuvent s'exécuter chaque nuit automatiquement, ou immédiatement avec le bouton
+  <b>« Exécuter maintenant »</b> en haut à droite. La planification nocturne est configurée par votre
+  équipe technique lors du déploiement.</p>
+</div></div>
+{% endblock %}

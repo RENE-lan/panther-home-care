@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Confidentialité — Panther{% endblock %}
+{% block heading %}Confidentialité{% endblock %}
+{% block content %}
+<div class="fam-hero">
+  <div class="ai-head"><span class="brain">{% icon "shield" 18 %}</span>
+    <div><b>Vos données, sous votre contrôle</b>
+      <small>Gérez les consentements pour les soins de {{ client.first_name }} et voyez qui a consulté son dossier.</small></div>
+  </div>
+</div>
+
+<h3 class="sec-title">Consentements</h3>
+<div class="card">
+  <table><thead><tr><th>Objet</th><th>Statut</th><th></th></tr></thead><tbody>
+  {% for c in consent_rows %}
+    <tr>
+      <td>{{ c.label }}</td>
+      <td>{% if c.granted %}<span class="paystat paid">● Accordé{% if c.at %} le {{ c.at|date:"d/m/Y" }}{% endif %}</span>{% elif c.withdrawn %}<span class="paystat unpaid">● Retiré</span>{% else %}<span style="color:var(--muted)">— À décider</span>{% endif %}</td>
+      <td style="text-align:right">
+        <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="purpose" value="{{ c.code }}">
+          {% if c.granted %}<button name="action" value="withdraw" class="btn btn-ghost btn-sm">Retirer</button>
+          {% else %}<button name="action" value="grant" class="btn btn-approve btn-sm">Accorder</button>{% endif %}
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody></table>
+  <p style="color:var(--muted);font-size:12.5px;margin-top:10px">Vous pouvez retirer un consentement à tout moment. Certains soins peuvent nécessiter le consentement « Prestation des soins ».</p>
+</div>
+
+<h3 class="sec-title">Qui a consulté le dossier</h3>
+<div class="card">
+  {% for a in access_log %}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
+      <span><b>{{ a.actor_name }}</b>{% if a.actor_role %} · {{ a.actor_role }}{% endif %} — {{ a.what }}</span>
+      <span style="color:var(--muted)">{{ a.at|date:"d/m/Y H:i" }}</span>
+    </div>
+  {% empty %}<p class="empty">Aucun accès enregistré pour le moment.</p>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Mes demandes — Panther Home Care{% endblock %}
+{% block heading %}Mes demandes{% endblock %}
+{% block topbar_actions %}
+  <a class="btn btn-approve btn-sm" href="{% url 'dashboard:open_visits' %}">{% icon "calendarplus" 15 %} Visites ouvertes</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead><tr><th>Client</th><th>Créneau</th><th>Compatibilité</th><th>Statut</th></tr></thead>
+    <tbody>
+    {% for req in requests %}
+      <tr>
+        <td><b>{{ req.visit.client.first_name }}</b><br><small style="color:var(--muted)">{{ req.visit.client.care_type }}</small></td>
+        <td>{{ req.visit.scheduled_start|date:"d M Y" }} · {{ req.visit.scheduled_start|time:"H:i" }}–{{ req.visit.scheduled_end|time:"H:i" }}</td>
+        <td><b>{{ req.score }}%</b></td>
+        <td>
+          {% if req.status == 'PENDING' %}<span class="pill a">En attente d'approbation</span>
+          {% elif req.status == 'APPROVED' %}<span class="pill g">Approuvée · ajoutée au planning</span>
+          {% else %}<span class="pill n">Refusée</span>{% endif %}
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="4" class="empty">Aucune demande. Parcourez les <a href="{% url 'dashboard:open_visits' %}">visites ouvertes</a>.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

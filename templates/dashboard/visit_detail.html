@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block heading %}Détail de la visite{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="head"><h2>{{ visit.client.code }} — {{ visit.client.full_name }}</h2>
+    <span class="pill {% if visit.is_uncovered %}r{% else %}g{% endif %}">{{ visit.get_status_display }}</span></div>
+  <div class="body">
+    <dl class="detail-list">
+      <dt>Créneau</dt><dd>{{ visit.scheduled_start|date:"l d M Y · H:i" }} – {{ visit.scheduled_end|time:"H:i" }}</dd>
+      <dt>Type de soins</dt><dd>{{ visit.client.care_type|default:"—" }}</dd>
+      <dt>Soignant</dt><dd>{{ visit.caregiver.full_name|default:"Non affecté" }}</dd>
+    </dl>
+  </div>
+</div>
+
+{% if matches %}
+{% if continuity_risk %}
+<div class="carematch-warn">{% icon "warning" 15 %} <b>Risque de continuité</b> — {{ visit.client.first_name }} a été suivi(e) surtout par {{ continuity_risk.code }} ({{ continuity_risk.visits }} visites). Affecter un nouveau soignant peut réduire la continuité des soins.</div>
+{% endif %}
+
+{% with r=recommended %}
+<div class="card cm-reco">
+  <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 16 %}</span><h2>PANTHER CAREMATCH</h2></div><span class="chip">Recommandation IA</span></div>
+  <div class="body">
+    <div class="cm-top">
+      <div class="cm-av">{{ r.caregiver.first_name|first }}{{ r.caregiver.last_name|first }}</div>
+      <div class="cm-id">
+        <div class="cm-verdict g">Recommandé</div>
+        <b>{{ r.caregiver.code }} — {{ r.caregiver.full_name }}</b>
+        <div class="cm-sub">{{ r.continuity_visits }} visite{{ r.continuity_visits|pluralize }} avec {{ visit.client.first_name }} · {{ r.caregiver.punctuality_score }}% ponctualité{% if r.distance_km %} · {{ r.distance_km|floatformat:1 }} km{% endif %}</div>
+      </div>
+      <div class="cm-score"><div class="n">{{ r.score }}%</div><div class="l">CareMatch</div></div>
+    </div>
+
+    <div class="cm-components">
+      <div class="cmc"><span>🧠 Expérience</span><div class="cmbar"><i style="width:{{ r.components.experience }}%"></i></div><b>{{ r.components.experience }}%</b></div>
+      <div class="cmc"><span>❤️ Compatibilité</span><div class="cmbar"><i style="width:{{ r.components.personality }}%"></i></div><b>{{ r.components.personality }}%</b></div>
+      <div class="cmc"><span>📍 Distance</span><div class="cmbar"><i style="width:{{ r.components.distance }}%"></i></div><b>{{ r.components.distance }}%</b></div>
+      <div class="cmc"><span>🕐 Fiabilité</span><div class="cmbar"><i style="width:{{ r.components.reliability }}%"></i></div><b>{{ r.components.reliability }}%</b></div>
+      <div class="cmc"><span>🔄 Continuité</span><div class="cmbar"><i style="width:{{ r.components.continuity }}%"></i></div><b>{{ r.components.continuity }}%</b></div>
+      <div class="cmc"><span>🗣️ Langue</span><div class="cmbar"><i style="width:{{ r.components.language }}%"></i></div><b>{{ r.components.language }}%</b></div>
+    </div>
+
+    <div class="cm-arrival {% if r.arrival.feasible %}ok{% else %}warn{% endif %}">
+      {% icon "visits" 14 %}
+      {% if r.arrival.prev_end %}Termine une visite à {{ r.arrival.prev_end }} · {% endif %}Trajet estimé {{ r.arrival.travel_min }} min ({{ r.arrival.origin }}) · Confiance d'arrivée <b>{{ r.arrival.confidence }}%</b>
+    </div>
+
+    <div class="cm-why">🧠 <b>Panther :</b> {{ r.why }}</div>
+
+    <form method="post" action="{% url 'dashboard:approve_assignment' visit.id %}" class="actions">
+      {% csrf_token %}<input type="hidden" name="caregiver_id" value="{{ r.caregiver.id }}">
+      <button class="btn btn-approve" type="submit">Affecter {{ r.caregiver.code }}</button>
+      <a class="btn btn-ghost" href="#simulateur">Simuler / comparer</a>
+    </form>
+  </div>
+</div>
+{% endwith %}
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <div class="head"><h2>Alternatives</h2></div>
+      <div class="body">
+        {% for r in alternatives %}
+        <div class="cm-alt">
+          <span class="cm-verdict {% if r.verdict == 'recommended' %}g{% elif r.verdict == 'alternative' %}a{% else %}r{% endif %}">{% if r.verdict == 'recommended' %}Recommandé{% elif r.verdict == 'alternative' %}Alternative{% else %}Déconseillé{% endif %}</span>
+          <div class="cm-alt-main"><b>{{ r.caregiver.code }}</b><small>{{ r.continuity_visits }} visite(s) · {% if r.distance_km %}{{ r.distance_km|floatformat:1 }} km{% endif %} · arrivée {{ r.arrival.confidence }}%</small></div>
+          <span class="cm-altscore">{{ r.score }}%</span>
+          <form method="post" action="{% url 'dashboard:approve_assignment' visit.id %}">{% csrf_token %}<input type="hidden" name="caregiver_id" value="{{ r.caregiver.id }}"><button class="btn btn-ghost btn-sm">Affecter</button></form>
+        </div>
+        {% empty %}<p class="empty">Aucune alternative.</p>{% endfor %}
+        {% for r in others %}
+        <div class="cm-alt muted">
+          <span class="cm-verdict r">Déconseillé</span>
+          <div class="cm-alt-main"><b>{{ r.caregiver.code }}</b><small>{{ r.why }}</small></div>
+          <span class="cm-altscore">{{ r.score }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="head"><h2><span class="hdot b"></span> Qui connaît le mieux {{ visit.client.first_name }} ?</h2></div>
+      <div class="body">
+        {% for c in continuity %}
+        <div class="cont-row"><span class="cont-name">{{ c.code }}</span><div class="cont-bar"><i style="width:{{ c.pct }}%"></i></div><b>{{ c.visits }}</b></div>
+        {% empty %}<p class="empty">Aucun historique de visite pour ce client.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="simulateur">
+  <div class="head"><div class="ai-head"><span class="brain">{% icon "ai" 15 %}</span><h2>Simulateur « et si ? »</h2></div><span class="chip">Aide à la décision</span></div>
+  <table>
+    <thead><tr><th>Soignant</th><th>CareMatch</th><th>Ponctualité</th><th>Continuité</th><th>Trajet</th><th>Conflit</th><th>Résultat prévu</th></tr></thead>
+    <tbody>
+    {% for r in matches %}
+      <tr>
+        <td><b>{{ r.caregiver.code }}</b></td>
+        <td><b style="color:{% if r.score >= 85 %}var(--green){% elif r.score >= 65 %}var(--amber){% else %}var(--red){% endif %}">{{ r.score }}%</b></td>
+        <td>{{ r.caregiver.punctuality_score }}%</td>
+        <td>{{ r.continuity_visits }} visite{{ r.continuity_visits|pluralize }}</td>
+        <td>{% if r.arrival.feasible %}<span class="pill g">Faible · {{ r.arrival.confidence }}%</span>{% else %}<span class="pill a">Serré · {{ r.arrival.confidence }}%</span>{% endif %}</td>
+        <td><span class="pill g">Aucun</span></td>
+        <td>{% if r.verdict == 'recommended' %}🟢 Excellent{% elif r.verdict == 'alternative' %}🟡 Acceptable{% else %}🔴 Risqué{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

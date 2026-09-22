@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Nouveau candidat — Panther{% endblock %}
+{% block heading %}Nouveau candidat{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <div class="ai-head"><span class="brain">{% icon "recruitment" 16 %}</span><b>Formulaire de candidature</b></div>
+  <form method="post" style="margin-top:10px">{% csrf_token %}
+    <div class="grid2">
+      <div><label class="dl">Prénom *</label><input name="first_name" required></div>
+      <div><label class="dl">Nom *</label><input name="last_name" required></div>
+    </div>
+    <div class="grid2">
+      <div><label class="dl">Téléphone</label><input name="phone" placeholder="+243 …"></div>
+      <div><label class="dl">E-mail</label><input type="email" name="email"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="dl">Origine</label><input name="source" placeholder="Recommandation, annonce…"></div>
+      <div><label class="dl">Expérience</label><input name="experience" placeholder="ex. 3 ans en soins à domicile"></div>
+    </div>
+    <label class="dl">Notes</label><textarea name="notes" rows="3" placeholder="Compétences, disponibilité, remarques…"></textarea>
+    <button class="btn btn-approve">{% icon "recruitment" 15 %} Ajouter au pipeline</button>
+  </form>
+</div>
+{% endblock %}

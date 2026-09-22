@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block heading %}Incidents{% endblock %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead><tr><th>Incident</th><th>Client</th><th>Gravité</th><th>Statut</th><th>Créé</th><th></th></tr></thead>
+    <tbody>
+    {% for i in incidents %}
+      <tr>
+        <td><a href="{% url 'dashboard:incident_detail' i.id %}" style="color:var(--ink);font-weight:700;text-decoration:none">{{ i.title }}</a></td>
+        <td>{{ i.client.code|default:"—" }}</td>
+        <td><span class="risk {{ i.severity }}">{{ i.get_severity_display }}</span></td>
+        <td><span class="pill {% if i.status == 'RESOLVED' %}g{% elif i.status == 'ESCALATED' %}r{% else %}n{% endif %}">{{ i.get_status_display }}</span></td>
+        <td>{{ i.created_at|date:"d M H:i" }}</td>
+        <td style="text-align:right"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:incident_detail' i.id %}">Ouvrir →</a></td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="empty">Aucun incident.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

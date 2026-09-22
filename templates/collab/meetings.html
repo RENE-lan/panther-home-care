@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Réunions — Panther{% endblock %}
+{% block heading %}Réunions{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="head"><h2>{% icon "calendar" 14 %} Demander une réunion</h2></div>
+  <div class="body">
+    <form method="post" action="{% url 'collab:meeting_request' %}">{% csrf_token %}{% if prefill_client %}<input type="hidden" name="client" value="{{ prefill_client.id }}"><div style="margin-bottom:10px;color:var(--muted);font-size:13px">Réunion liée à <b>{{ prefill_client.code }} — {{ prefill_client.full_name }}</b></div>{% endif %}
+      <div class="mtg-form">
+        <div><label>Titre</label><input name="title" placeholder="ex. Point hebdo facturation" required></div>
+        <div><label>Date &amp; heure</label><input type="datetime-local" name="proposed_at" required></div>
+        <div><label>Durée (minutes)</label><input type="number" name="duration_min" value="30" min="10" step="5"></div>
+        <div><label>Lieu / lien visio</label><input name="location" placeholder="Bureau ou lien Meet/Zoom"></div>
+        <div class="full"><label>Objet</label><textarea name="purpose" rows="2" placeholder="Sujet de la réunion…"></textarea></div>
+        <div class="full"><label>Participants</label>
+          <div class="chip-checks">
+            {% for u in office_users %}<label class="chip-check" onclick="this.classList.toggle('on')"><input type="checkbox" name="participants" value="{{ u.id }}"> {{ u.get_full_name|default:u.username }} <span style="color:var(--muted);font-size:11.5px">· {{ u.get_role_display }}</span></label>{% empty %}<span style="color:var(--muted)">Aucun autre membre du bureau.</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px"><button class="btn btn-approve">{% icon "calendar" 15 %} Demander la réunion</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="wq-sec"><span class="dot" style="background:var(--orange)"></span><h3>À venir</h3><span class="count">{{ upcoming|length }}</span></div>
+{% for m in upcoming %}
+<div class="mtg-card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">{{ m.title }}</div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="mtg-when">{% icon "calendar" 13 %} {{ m.proposed_at|date:"l d M · H:i" }}</span>
+        <span class="mtg-when">{% icon "clock" 13 %} {{ m.duration_min }} min</span>
+        {% if m.location %}<span class="mtg-when">{% icon "pin" 13 %} {{ m.location }}</span>{% endif %}
+      </div>
+    </div>
+    <span class="paystat {% if m.status == 'CONFIRMED' %}paid{% else %}unpaid{% endif %}" style="white-space:nowrap">{{ m.get_status_display }}</span>
+  </div>
+  {% if m.purpose %}<p style="color:var(--muted);margin:12px 0 0">{{ m.purpose }}</p>{% endif %}
+  <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+    <span style="color:var(--muted);font-size:12.5px">Demandé par {{ m.requested_by.get_full_name|default:m.requested_by.username }} ·</span>
+    {% for r in m.responses.all %}<span class="mtg-resp {% if r.response == 'ACCEPTED' %}ok{% elif r.response == 'DECLINED' %}no{% else %}wait{% endif %}">{{ r.user.get_full_name|default:r.user.username }} · {{ r.get_response_display }}</span>{% endfor %}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px">
+      <a class="btn btn-approve btn-sm" href="{% url 'collab:meeting_room' m.id %}">{% icon "radio" 14 %} Ouvrir la salle</a>
+    {% if m.id in my_responses %}
+      <form method="post" action="{% url 'collab:meeting_respond' m.id 'accept' %}" style="display:inline">{% csrf_token %}<button class="btn btn-approve btn-sm">{% icon "check" 14 %} Accepter</button></form>
+      <form method="post" action="{% url 'collab:meeting_respond' m.id 'decline' %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm">Refuser</button></form>
+    {% endif %}
+    {% if m.requested_by == user %}
+      <form method="post" action="{% url 'collab:meeting_update' m.id 'done' %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm">Marquer terminée</button></form>
+      <form method="post" action="{% url 'collab:meeting_update' m.id 'cancel' %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm">Annuler</button></form>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="card"><div style="text-align:center;padding:38px 20px">
+  <div style="width:52px;height:52px;border-radius:50%;background:var(--bg);color:var(--muted);display:grid;place-items:center;margin:0 auto 12px">{% icon "calendar" 24 %}</div>
+  <div style="color:var(--muted)">Aucune réunion à venir.</div>
+</div></div>
+{% endfor %}
+
+{% if past %}
+<div class="wq-sec"><span class="dot" style="background:var(--muted)"></span><h3>Historique</h3></div>
+{% for m in past %}<div class="mtg-card" style="opacity:.72"><div style="display:flex;justify-content:space-between;align-items:center"><div><b>{{ m.title }}</b><div style="color:var(--muted);font-size:12.5px">{{ m.proposed_at|date:"d M · H:i" }}</div></div><span class="paystat">{{ m.get_status_display }}</span></div></div>{% endfor %}
+{% endif %}
+{% endblock %}

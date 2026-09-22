@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Éditer soignant — Panther{% endblock %}
+{% block heading %}Éditer — {{ cg.code }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px"><div class="body">
+  <form method="post" class="mtg-form">{% csrf_token %}
+    <div><label>Prénom</label><input name="first_name" value="{{ cg.first_name }}" required></div>
+    <div><label>Nom</label><input name="last_name" value="{{ cg.last_name }}"></div>
+    <div><label>Téléphone</label><input name="phone" value="{{ cg.phone }}"></div>
+    <div><label>Taux horaire ($)</label><input type="number" step="0.5" name="pay_rate" value="{{ cg.pay_rate }}"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" name="active" id="act" {% if cg.active %}checked{% endif %} style="width:auto"><label for="act" style="margin:0">Soignant actif</label></div>
+    <div class="full" style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-approve">Enregistrer</button><a class="btn btn-ghost" href="{% url 'dashboard:caregiver_360' cg.id %}">Annuler</a></div>
+  </form>
+</div></div>
+{% endblock %}
