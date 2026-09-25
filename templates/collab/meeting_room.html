@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}{{ m.title }} — Salle Panther{% endblock %}
+{% block heading %}Salle de réunion{% endblock %}
+{% block content %}
+<div class="room-head card"><div class="body" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+ <div>
+ <div style="font-size:17px;font-weight:800;color:var(--ink)">{{ m.title }}</div>
+ <div style="color:var(--muted);font-size:13px;margin-top:2px">{{ m.proposed_at|date:"l d M · H:i" }} · {{ m.duration_min }} min{% if m.location %} · {{ m.location }}{% endif %}</div>
+ </div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap">
+ {% for r in participants %}<span class="mtg-resp {% if r.response == 'ACCEPTED' %}ok{% elif r.response == 'DECLINED' %}no{% else %}wait{% endif %}">{{ r.user.get_full_name|default:r.user.username }}</span>{% endfor %}
+ </div>
+</div></div>
+
+<div class="room-grid">
+ <div class="room-video card">
+ <div id="videoPlaceholder" class="video-ph">
+ <div class="video-ph-icon">{% icon "radio" 30 %}</div>
+ <div style="font-weight:700;color:var(--ink);font-size:16px;margin-top:10px">Appel vidéo</div>
+ <div style="color:var(--muted);margin:4px 0 16px;text-align:center;max-width:340px">Lancez la visio pour parler en direct — caméra, micro et partage d'écran, comme dans Teams.</div>
+ <button class="btn btn-approve" onclick="startVideo()">{% icon "radio" 15 %} Rejoindre l'appel vidéo</button>
+ </div>
+ <div id="jitsi" style="width:100%;height:100%"></div>
+ </div>
+
+ <div class="room-chat card">
+ <div class="room-chat-head">{% icon "message" 15 %} Discussion</div>
+ <div class="room-msgs" id="msgs"></div>
+ <form class="room-compose" id="chatForm">
+ <input id="chatInput" placeholder="Écrivez un message…" autocomplete="off" required>
+ <button class="asst-send" type="submit" aria-label="Envoyer">{% icon "send" 17 %}</button>
+ </form>
+ </div>
+</div>
+<script src="https://meet.jit.si/external_api.js"></script>
+<script>
+const ME="{{ user.get_full_name|default:user.username|escapejs }}";
+let jitsi=null;
+function startVideo(){
+ if(jitsi||typeof JitsiMeetExternalAPI==='undefined')return;
+ document.getElementById('videoPlaceholder').style.display='none';
+ jitsi=new JitsiMeetExternalAPI("meet.jit.si",{roomName:"{{ m.video_room }}",parentNode:document.getElementById('jitsi'),
+ width:'100%',height:'100%',userInfo:{displayName:ME},
+ configOverwrite:{prejoinPageEnabled:false,disableDeepLinking:true,disableInviteFunctions:true,
+ subject:"{{ m.title|escapejs }} — Panther Home Care",requireDisplayName:false},
+ interfaceConfigOverwrite:{
+ SHOW_JITSI_WATERMARK:false,SHOW_WATERMARK_FOR_GUESTS:false,SHOW_BRAND_WATERMARK:false,
+ SHOW_POWERED_BY:false,HIDE_INVITE_MORE_HEADER:true,MOBILE_APP_PROMO:false,
+ DISABLE_JOIN_LEAVE_NOTIFICATIONS:true,DEFAULT_BACKGROUND:'#0b1424',
+ TOOLBAR_BUTTONS:['microphone','camera','desktop','fullscreen','hangup','chat','tileview','settings','raisehand','participants-pane']
+ }});
+ jitsi.addEventListener('videoConferenceLeft',function(){document.getElementById('videoPlaceholder').style.display='flex';document.getElementById('jitsi').innerHTML='';jitsi=null;});
+}
+const msgs=document.getElementById('msgs');let lastId=0;
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function render(m){const d=document.createElement('div');d.className='room-msg '+(m.me?'me':'them');
+ d.innerHTML=(m.me?'':'<div class="who">'+esc(m.user)+'</div>')+'<div class="rb">'+esc(m.text)+'</div><div class="rt">'+m.at+'</div>';
+ msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;lastId=Math.max(lastId,m.id);}
+function csrf(){const c=document.cookie.match(/csrftoken=([^;]+)/);return c?c[1]:'';}
+async function poll(){try{const r=await fetch('{% url "collab:meeting_messages" m.id %}?after='+lastId,{credentials:'same-origin'});
+ const d=await r.json();(d.messages||[]).forEach(render);}catch(e){}}
+document.getElementById('chatForm').addEventListener('submit',async e=>{e.preventDefault();
+ const i=document.getElementById('chatInput');const t=i.value.trim();if(!t)return;i.value='';
+ try{const r=await fetch('{% url "collab:meeting_post" m.id %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},credentials:'same-origin',body:JSON.stringify({text:t})});
+ const m=await r.json();if(m.id){render(m);} }catch(e){}});
+poll();setInterval(poll,3000);
+</script>
+{% endblock %}

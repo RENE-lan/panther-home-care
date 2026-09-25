@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Messagerie — Panther{% endblock %}
+{% block heading %}Messagerie{% endblock %}
+{% block content %}
+<div class="info-banner"><div class="ai-head"><span class="brain">{% icon "message" 16 %}</span><b>Conversations avec les familles{% if scope == 'FINANCE' %} — canal Finance{% endif %}</b></div>
+<p>{% if scope == 'FINANCE' %}Vous voyez uniquement les échanges liés à la <b>facturation</b>.{% else %}Soins (coordinateur) et facturation (finance) — répondez directement aux familles.{% endif %}</p></div>
+<div class="card"><div class="body" style="padding:6px 0">
+ {% for t in threads %}
+ <a class="inbox-row" href="{% url 'dashboard:client_conversation' t.client.id t.topic %}">
+ <div class="inbox-ava">{{ t.client.first_name|first }}</div>
+ <div class="inbox-main">
+ <div class="inbox-top"><b>{{ t.client.code }} — {{ t.client.full_name }}</b><span class="inbox-chan {% if t.topic == 'FINANCE' %}fin{% else %}care{% endif %}">{{ t.topic_label }}</span></div>
+ <div class="inbox-last">{{ t.last }}</div>
+ </div>
+ <div class="inbox-meta"><span class="inbox-time">{{ t.at|date:"d/m H:i" }}</span>{% if t.unread %}<span class="inbox-unread">{{ t.unread }}</span>{% endif %}</div>
+ </a>
+ {% empty %}<p class="empty" style="padding:24px">Aucune conversation pour le moment.</p>{% endfor %}
+</div></div>
+{% endblock %}

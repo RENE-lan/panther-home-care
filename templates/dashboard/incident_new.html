@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Déclarer un incident — Panther{% endblock %}
+{% block heading %}Déclarer un incident{% endblock %}
+{% block content %}
+<div class="card" style="max-width:680px"><div class="body">
+ <div class="ai-head"><span class="brain">{% icon "alert" 16 %}</span><b>Signaler un accident / incident</b></div>
+ <form method="post" enctype="multipart/form-data" class="mtg-form" style="margin-top:12px">{% csrf_token %}
+ <div><label>Type</label>
+ <select name="category">{% for c in cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+ </div>
+ <div><label>Gravité</label>
+ <select name="severity">{% for k,l in severities %}<option value="{{ k }}" {% if k == 'MEDIUM' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+ </div>
+ {% if not is_caregiver %}
+ <div class="full"><label>Client concerné (optionnel)</label>
+ <select name="client"><option value="">— Aucun / à préciser —</option>{% for c in clients %}<option value="{{ c.id }}">{{ c.code }} — {{ c.full_name }}</option>{% endfor %}</select>
+ </div>
+ {% endif %}
+ <div class="full"><label>Titre (optionnel)</label><input name="title" placeholder="ex. Chute dans la salle de bain"></div>
+ <div class="full"><label>Description</label><textarea name="description" rows="3" placeholder="Que s'est-il passé ? Quand ? Qui était présent ?"></textarea></div>
+ <div class="full">
+ <label>Photos / vidéos</label>
+ <label class="uploadzone">
+ <input type="file" name="media" accept="image/*,video/*" multiple capture="environment" style="display:none"
+ onchange="this.closest('.uploadzone').querySelector('.fn').textContent=this.files.length+' fichier(s) sélectionné(s)'">
+ <span>{% icon "camera" 26 %}</span>
+ <b>Prendre / téléverser une photo ou une vidéo</b>
+ <span style="color:var(--muted);font-size:12.5px">Sur mobile, la caméra s'ouvre directement · plusieurs fichiers · max 60 Mo</span>
+ <span class="fn" style="color:var(--orange);font-weight:600;font-size:12.5px"></span>
+ </label>
+ </div>
+ <div class="full" style="display:flex;gap:8px;margin-top:6px">
+ <button class="btn btn-approve">{% icon "alert" 15 %} Déclarer l'incident</button>
+ <a class="btn btn-ghost" href="{% url 'dashboard:incidents' %}">Annuler</a>
+ </div>
+ </form>
+</div></div>
+{% endblock %}

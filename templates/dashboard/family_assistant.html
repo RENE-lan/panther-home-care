@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Assistant Panther IA — Panther{% endblock %}
+{% block heading %}Assistant IA{% endblock %}
+{% block content %}
+<div class="asst-wrap">
+ <div class="asst-hero">
+ <div class="asst-avatar">{% icon "ai" 22 %}</div>
+ <div>
+ <div class="asst-title">Assistant Panther IA</div>
+ <div class="asst-sub">Questions sur les soins de <b>{{ client.first_name }}</b> — visites, rapports, équipe, factures. Pour la santé, je vous oriente vers le coordinateur.</div>
+ </div>
+ </div>
+
+ <div class="asst-thread" id="thread">
+ <div class="asst-msg bot"><div class="ava">{% icon "ai" 15 %}</div><div class="bub">Bonjour {{ user.first_name|default:"" }} Comment puis-je vous aider concernant les soins de {{ client.first_name }} ?</div></div>
+ </div>
+
+ <div class="asst-chips">
+ <button class="asst-chip" data-q="Quand est la prochaine visite ?">Prochaine visite</button>
+ <button class="asst-chip" data-q="Quel est le dernier rapport de soins ?">Dernier rapport</button>
+ <button class="asst-chip" data-q="Quel est le solde à régler ?">Mes factures</button>
+ <button class="asst-chip" data-q="Qui compose l'équipe de soins ?">Équipe de soins</button>
+ </div>
+
+ <form class="asst-compose" id="asstForm">
+ <input id="asstInput" placeholder="Écrivez votre message…" autocomplete="off" required>
+ <button class="asst-send" type="submit" aria-label="Envoyer">{% icon "send" 18 %}</button>
+ </form>
+</div>
+<script>
+const thread=document.getElementById('thread');let history=[];
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function bubble(text,who,actions){
+ const w=document.createElement('div');w.className='asst-msg '+who;
+ const ava=who==='bot'?'<div class="ava">{% icon "ai" 15 %}</div>':'';
+ w.innerHTML=ava+'<div class="bub">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+ thread.appendChild(w);
+ if(actions&&actions.length){const r=document.createElement('div');r.className='asst-actions';
+ actions.forEach(a=>{const b=document.createElement('a');b.className='asst-act';b.textContent=a.label;
+ b.href=({contact_coordinator:'/portal/messages/',view_reports:'/portal/reports/',view_invoices:'/portal/invoices/',view_visits:'/portal/visits/'})[a.key]||'#';r.appendChild(b);});
+ thread.appendChild(r);}
+ thread.scrollTop=thread.scrollHeight;
+}
+function csrf(){const m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:'';}
+async function ask(q){
+ bubble(q,'me');const t=document.createElement('div');t.className='asst-msg bot';t.innerHTML='<div class="ava">{% icon "ai" 15 %}</div><div class="bub typing">•••</div>';thread.appendChild(t);thread.scrollTop=thread.scrollHeight;
+ try{const r=await fetch('{% url "dashboard:family_assistant_ask" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({question:q,history})});
+ const d=await r.json();t.remove();bubble(d.answer,'bot',d.actions);
+ history.push({role:'user',content:q});history.push({role:'assistant',content:d.answer});if(history.length>16)history=history.slice(-16);
+ }catch(e){t.remove();bubble("Désolé, une erreur est survenue.",'bot');}
+}
+document.getElementById('asstForm').addEventListener('submit',e=>{e.preventDefault();const i=document.getElementById('asstInput');if(i.value.trim()){ask(i.value.trim());i.value='';}});
+document.querySelectorAll('.asst-chip').forEach(c=>c.addEventListener('click',()=>ask(c.dataset.q)));
+</script>
+{% endblock %}

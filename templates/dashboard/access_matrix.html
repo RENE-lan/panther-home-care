@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load icons permtags %}
+{% block title %}Permissions & accès — Panther{% endblock %}
+{% block heading %}Permissions par rôle{% endblock %}
+{% block content %}
+<div class="info-banner"><div class="ai-head"><span class="brain">{% icon "shield" 16 %}</span><b>Qui voit quoi</b></div>
+<p>Cochez les modules autorisés pour chaque rôle. <b>Admin</b> et <b>Manager</b> voient tout (non modifiable). Les portails <b>Famille</b> et <b>Soignant</b> restent séparés.</p></div>
+<form method="post"><div class="card"><div class="body" style="overflow-x:auto;padding:0">{% csrf_token %}
+ <table class="perm-table">
+ <thead><tr><th>Module</th>{% for rk,rl in roles %}<th>{{ rl }}</th>{% endfor %}</tr></thead>
+ <tbody>
+ {% for ak,al in areas %}
+ <tr>
+ <td class="perm-area">{{ al }}</td>
+ {% for rk,rl in roles %}
+ <td class="perm-cell"><label class="perm-toggle"><input type="checkbox" name="{{ rk }}:{{ ak }}" {% if grid|dictkey:rk|dictkey:ak %}checked{% endif %}></label></td>
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+</div></div>
+<div style="margin-top:14px"><button class="btn btn-approve">{% icon "check" 15 %} Enregistrer les permissions</button></div>
+</form>
+{% endblock %}
