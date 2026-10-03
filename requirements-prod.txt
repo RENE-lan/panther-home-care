@@ -1,0 +1,3 @@
+# Installed on Render only (see render.yaml). Not needed for local development.
+gunicorn>=22.0
+psycopg[binary]>=3.2

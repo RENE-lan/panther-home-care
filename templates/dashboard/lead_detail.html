@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Prospect — {{ lead.name }}{% endblock %}
+{% block heading %}Prospect — {{ lead.name }}{% endblock %}
+{% block content %}
+<div class="lead-top">
+ <div class="card"><div class="body">
+ <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+ <div>
+ <div style="font-size:18px;font-weight:800;color:var(--ink)">{{ lead.name }}</div>
+ <div style="color:var(--muted);margin-top:3px">{% if lead.phone %}{{ lead.phone }}{% endif %}{% if lead.email %} · {{ lead.email }}{% endif %}{% if lead.referred_by %} · Recommandé par {{ lead.referred_by }}{% endif %}</div>
+ {% if lead.care_need %}<div style="color:var(--muted)">Besoin : {{ lead.care_need }}</div>{% endif %}
+ </div>
+ {% if lead.converted_client %}<a class="pill g" href="{% url 'dashboard:client_360' lead.converted_client.id %}">→ {{ lead.converted_client.code }}</a>{% endif %}
+ </div>
+ </div></div>
+
+ <div class="pi-panel">
+ <div class="pi-head">{% icon "ai" 15 %} Prospect Intelligence
+ <span class="pi-badge {{ intel.level }}">{% if intel.level == 'high' %}Fort potentiel{% elif intel.level == 'medium' %}Potentiel moyen{% else %}Potentiel faible{% endif %} · {{ intel.score }}</span>
+ </div>
+ <div class="pi-row"><span>Besoin de soins</span><b>{{ intel.care_requirement }}</b></div>
+ <div class="pi-row"><span>Service estimé</span><b>{{ intel.hours_per_day }} h/jour</b></div>
+ <div class="pi-row"><span>Valeur mensuelle est.</span><b>{{ intel.monthly_value }}</b></div>
+ <div class="pi-row"><span>Marge brute est.</span><b>{{ intel.monthly_margin }} ({{ intel.margin_pct }}%)</b></div>
+ <div class="pi-sep"></div>
+ <div class="pi-next"><div class="pi-lbl">Action recommandée</div><b>{{ intel.next_action }}</b></div>
+ <div class="pi-row"><span>Soignants compatibles</span><b>{{ intel.matches }} disponible(s)</b></div>
+ <div class="pi-row"><span>Délai de réponse</span><b>{{ intel.deadline }}</b></div>
+ <div class="pi-note">Estimations — la décision reste humaine.</div>
+ </div>
+</div>
+
+<h3 class="sec-title">Flux du prospect</h3>
+<div class="card"><div class="body">
+ <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+ {% for st in steps %}
+ <div style="display:flex;align-items:center;gap:8px"><span style="width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;{% if st.current %}background:var(--navy);color:#fff{% elif st.done %}background:#eafaf0;color:var(--green){% else %}background:var(--bg);color:var(--muted){% endif %}">{% if st.done and not st.current %}✓{% else %}{{ forloop.counter }}{% endif %}</span><span style="font-size:13px;{% if st.current %}font-weight:700{% endif %}">{{ st.label }}</span></div>
+ {% if not forloop.last %}<span style="flex:1;min-width:16px;height:2px;background:{% if st.done %}#bfe6cd{% else %}var(--line){% endif %};margin:0 5px"></span>{% endif %}
+ {% endfor %}
+ </div>
+ {% if lead.next_action %}<div style="margin-top:12px;padding:10px 12px;background:#fef8f4;border:1px solid #f5d9c6;border-radius:10px"><b style="color:var(--orange-d)">Prochaine action :</b> {{ lead.next_action }}</div>{% endif %}
+</div></div>
+
+<div class="conx-grid">
+ <div class="conx-card" style="grid-column:span 2">
+ <div class="conx-h">{% icon "message" 14 %} Enregistrer un contact</div>
+ <form method="post" action="{% url 'dashboard:lead_contact' lead.id %}">{% csrf_token %}
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+ <select name="kind" style="max-width:150px"><option value="CALL">Appel</option><option value="MESSAGE">Message</option><option value="EMAIL">E-mail</option><option value="MEETING">Réunion</option><option value="NOTE">Note</option></select>
+ <select name="stage" style="max-width:170px"><option value="">— étape inchangée —</option>{% for st in steps %}<option value="{{ st.key }}">{{ st.label }}</option>{% endfor %}</select>
+ </div>
+ <input name="note" placeholder="Détail du contact…" style="width:100%;margin-bottom:8px">
+ <input name="next_action" value="{{ lead.next_action }}" placeholder="Prochaine action…" style="width:100%;margin-bottom:8px">
+ <button class="btn btn-approve btn-sm">Enregistrer</button>
+ </form>
+ </div>
+ <div class="conx-card">
+ <div class="conx-h">{% icon "activity" 14 %} Historique de contact</div>
+ {% for e in events %}<div class="conx-row">{{ e.get_kind_display }}{% if e.note %} — {{ e.note }}{% endif %}<br><small style="color:var(--muted)">{{ e.at|date:"d/m H:i" }}</small></div>{% empty %}<div class="conx-empty">Aucun contact enregistré.</div>{% endfor %}
+ </div>
+</div>
+
+{% if not lead.converted_client %}
+<h3 class="sec-title">Convertir en client</h3>
+<div class="card"><div class="body">
+ <p style="color:var(--muted);margin:0 0 12px">Panther crée le Client 360 en conservant tout l'historique du prospect.</p>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+ <div><div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:6px">✓ REPRIS AUTOMATIQUEMENT</div>
+ {% for k,v in preview.carried %}<div class="conx-row" style="border:none;padding:3px 0">✓ {{ k }} : <b>{{ v }}</b></div>{% endfor %}</div>
+ <div><div style="font-size:12px;font-weight:800;color:var(--orange-d);margin-bottom:6px"> À COMPLÉTER APRÈS</div>
+ {% for m in preview.missing %}<div class="conx-row" style="border:none;padding:3px 0;color:var(--muted)"> {{ m }}</div>{% endfor %}</div>
+ </div>
+ <form method="post" action="{% url 'dashboard:convert_lead' lead.id %}" style="margin-top:14px" onsubmit="return confirm('Convertir en client actif ?')">{% csrf_token %}
+ <button class="btn btn-approve">{% icon "check" 15 %} Confirmer la conversion</button>
+ </form>
+</div></div>
+{% endif %}
+{% endblock %}

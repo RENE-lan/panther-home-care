@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Pointeuse — Panther{% endblock %}
+{% block heading %}Pointeuse{% endblock %}
+{% block content %}
+
+<!-- 1. STATUT ACTUEL -->
+<div class="tc-status {% if open_entry %}on{% endif %}">
+  <div class="tc-status-main">
+    <div class="tc-dot {% if open_entry %}live{% endif %}"></div>
+    <div>
+      <div class="tc-state">{% if open_entry %}En service{% else %}Hors service{% endif %}</div>
+      <div class="tc-since">
+        {% if open_entry %}Depuis {{ open_entry.clock_in|date:"H:i" }} · aujourd'hui {{ today_hours|floatformat:2 }} h{% else %}Prêt à pointer votre entrée{% endif %}
+      </div>
+    </div>
+  </div>
+  <form method="post" action="{% url 'dashboard:timeclock_punch' %}">{% csrf_token %}
+    {% if open_entry %}
+      <button class="tc-btn stop">{% icon "alert" 16 %} Terminer le service</button>
+    {% else %}
+      <button class="tc-btn start">{% icon "check" 16 %} Pointer l'entrée</button>
+    {% endif %}
+  </form>
+</div>
+
+<div class="tc-grid">
+  <!-- 2. AUJOURD'HUI -->
+  <div class="card"><div class="body">
+    <div class="tc-h">Aujourd'hui</div>
+    <div class="tc-row"><span>Entrée</span><b>{% if today_in %}{{ today_in|date:"H:i" }}{% else %}—{% endif %}</b></div>
+    <div class="tc-row"><span>Sortie</span><b>{% if today_out %}{{ today_out|date:"H:i" }}{% else %}—{% endif %}</b></div>
+    <div class="tc-row"><span>Durée</span><b>{{ today_hours|floatformat:2 }} h</b></div>
+    <div class="tc-row"><span>Statut</span>{% if open_entry %}<span class="pill" style="background:#e7f6ee;color:#1f7a44">En cours</span>{% elif today_in %}<span class="pill" style="background:#eef1f6;color:var(--muted)">Terminé</span>{% else %}<span class="pill" style="background:#eef1f6;color:var(--muted)">Aucun pointage</span>{% endif %}</div>
+  </div></div>
+
+  <!-- 3. CETTE SEMAINE -->
+  <div class="card"><div class="body">
+    <div class="tc-h">Cette semaine</div>
+    <div class="tc-row"><span>Heures travaillées</span><b>{{ week_hours|floatformat:2 }} h</b></div>
+    <div class="tc-row"><span>Heures planifiées</span><b>{{ scheduled|floatformat:1 }} h</b></div>
+    <div class="tc-row"><span>Écart</span><b style="color:{% if variance < 0 %}#d93a3a{% else %}#1f8a4c{% endif %}">{% if variance >= 0 %}+{% endif %}{{ variance|floatformat:2 }} h</b></div>
+    <div class="tc-bar"><div class="tc-fill" style="width:{% widthratio week_hours scheduled 100 %}%"></div></div>
+  </div></div>
+</div>
+
+<!-- 4. EXCEPTIONS -->
+{% if exceptions %}
+<h3 class="sec-title">Attention</h3>
+<div class="card"><div class="body" style="padding:6px 0">
+  {% for x in exceptions %}
+  <div class="tc-exc">
+    <div class="tc-exc-dot {{ x.tone }}"></div>
+    <div style="flex:1"><b>{{ x.label }}</b><div class="tc-exc-d">{{ x.detail }}</div></div>
+    <a class="btn btn-ghost btn-sm" href="{% url 'dashboard:attendance' %}">Examiner</a>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<!-- 5. MES POINTAGES -->
+<h3 class="sec-title">Mes pointages</h3>
+<div class="card"><div class="body" style="padding:0">
+  <table class="tc-table">
+    <thead><tr><th>Date</th><th>Entrée</th><th>Sortie</th><th>Durée</th><th></th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td>{{ e.clock_in|date:"D d M" }}</td>
+        <td>{{ e.clock_in|date:"H:i" }}</td>
+        <td>{% if e.clock_out %}{{ e.clock_out|date:"H:i" }}{% else %}<span style="color:var(--orange-d)">en cours</span>{% endif %}</td>
+        <td><b>{% if e.hours %}{{ e.hours|floatformat:2 }} h{% else %}—{% endif %}</b></td>
+        <td style="text-align:right">{% if e.clock_out %}<span style="color:#1f8a4c">✓</span>{% if e.adjusted %} <small style="color:var(--muted)">ajusté</small>{% endif %}{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5" style="color:var(--muted);padding:18px">Aucun pointage enregistré.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+
+{% if is_office %}
+<div style="margin-top:14px"><a class="btn btn-ghost btn-sm" href="{% url 'dashboard:attendance' %}">{% icon "clients" 14 %} Présence de l'équipe</a></div>
+{% endif %}
+{% endblock %}

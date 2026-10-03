@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Éditer client — Panther{% endblock %}
+{% block heading %}Éditer — {{ client.code }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px"><div class="body">
+ <form method="post" class="mtg-form">{% csrf_token %}
+ <div><label>Prénom</label><input name="first_name" value="{{ client.first_name }}" required></div>
+ <div><label>Nom</label><input name="last_name" value="{{ client.last_name }}"></div>
+ <div class="full"><label>Adresse</label><input name="address" value="{{ client.address }}"></div>
+ <div><label>Type de soins</label><input name="care_type" value="{{ client.care_type }}"></div>
+ <div><label>Langue préférée</label><input name="preferred_language" value="{{ client.preferred_language }}"></div>
+ <div><label>Niveau de risque</label><select name="risk_level">
+ {% for k,l in risk_choices %}<option value="{{ k }}" {% if k == client.risk_level %}selected{% endif %}>{{ l }}</option>{% endfor %}
+ </select></div>
+ <div style="display:flex;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" name="active" id="act" {% if client.active %}checked{% endif %} style="width:auto"><label for="act" style="margin:0">Client actif</label></div>
+ <div class="full" style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-approve">Enregistrer</button><a class="btn btn-ghost" href="{% url 'dashboard:client_360' client.id %}">Annuler</a></div>
+ </form>
+</div></div>
+{% endblock %}

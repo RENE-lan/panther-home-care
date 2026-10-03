@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Copilote IA — Panther Home Care{% endblock %}
+{% block heading %}Copilote IA{% endblock %}
+{% block topbar_actions %}
+ <form method="post" action="{% url 'dashboard:autofill_shifts' %}" style="margin:0"
+ onsubmit="return confirm('Laisser l\'IA affecter automatiquement les meilleurs soignants à toutes les visites non couvertes ?');">
+ {% csrf_token %}<button class="btn btn-approve btn-sm" type="submit">{% icon "ai" 15 %} Auto-remplir les visites</button>
+ </form>
+{% endblock %}
+{% block content %}
+<div class="copilot">
+ <div class="cop-hero">
+   <div>
+     <div class="cop-hero-greet">Bonjour {{ user.first_name|default:user.username }}</div>
+     <div class="cop-hero-sub">Voici ce qui mérite votre attention aujourd'hui.</div>
+   </div>
+   <span class="cop-hero-badge">{% icon "ai" 15 %} Panther AI</span>
+ </div>
+
+ {% if recos %}
+ <div class="cop-recos">
+   <div class="cop-recos-head">{% icon "alert" 14 %} {{ recos|length }} action(s) recommandée(s)</div>
+   {% for r in recos %}
+   <a class="cop-reco" href="{{ r.link }}">
+     <span class="cop-reco-dot {{ r.urgency }}"></span>
+     <span class="cop-reco-main"><b>{{ r.title }}</b><span>{{ r.why }}</span></span>
+     <span class="cop-reco-go">Examiner →</span>
+   </a>
+   {% endfor %}
+ </div>
+ {% endif %}
+
+ <div class="cop-thread" id="thread">
+ <div class="cop-msg bot"><div class="cop-body">Bonjour {{ user.first_name|default:user.username }} Je suis votre copilote. Posez-moi ce que vous voulez — sur l'agence (retards, visites, factures, incidents, un client ou un soignant précis, revenus), des calculs, ou une action : « relance le prospect X », « planifie une réunion avec X demain ».</div></div>
+ </div>
+
+ <div class="cop-cats">
+   <div class="cop-cat"><div class="cop-cat-t">Opérations</div>
+     <button class="cop-chip" data-q="Combien de visites non couvertes ?">Visites non couvertes</button>
+     <button class="cop-chip" data-q="Qui est en retard aujourd'hui ?">Retards</button>
+     <button class="cop-chip" data-q="Quel est l'état des opérations aujourd'hui ?">État du jour</button>
+   </div>
+   <div class="cop-cat"><div class="cop-cat-t">Clients</div>
+     <button class="cop-chip" data-q="Quels clients sont à risque ?">Clients à risque</button>
+     <button class="cop-chip" data-q="Quels sont les incidents récents ?">Incidents récents</button>
+   </div>
+   <div class="cop-cat"><div class="cop-cat-t">Soignants</div>
+     <button class="cop-chip" data-q="Quelles certifications expirent bientôt ?">Certifications</button>
+     <button class="cop-chip" data-q="Quels soignants ont fait le plus d'heures ?">Top soignants</button>
+   </div>
+   <div class="cop-cat"><div class="cop-cat-t">Finance</div>
+     <button class="cop-chip" data-q="revenus du mois">Revenus du mois</button>
+     <button class="cop-chip" data-q="Quelles factures sont en retard ?">Factures en retard</button>
+   </div>
+ </div>
+
+ <form class="cop-compose" id="copForm">
+ <input type="text" id="copInput" placeholder="Demandez à Panther… (question ou action)" autocomplete="off" required>
+ <button class="btn btn-approve" type="submit">Envoyer</button>
+ </form>
+</div>
+{% endblock %}
+{% block body_extra %}
+<script>
+const thread=document.getElementById('thread');
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function add(text,who){const d=document.createElement('div');d.className='cop-msg '+who;
+ d.innerHTML='<div class="cop-body">'+esc(text).replace(/\n/g,'<br>')+'</div>';thread.appendChild(d);thread.scrollTop=thread.scrollHeight;}
+let history=[];
+let _bai=null;
+async function browserAI(prompt, hist){
+  const sys='Tu es le copilote de Panther Home Care, un assistant IA complet et utile. Réponds clairement et complètement, en français par défaut (ou dans la langue de la question).';
+  try{
+    // Newest Chrome Prompt API: global LanguageModel
+    if(typeof LanguageModel!=='undefined' && LanguageModel.create){
+      const av = LanguageModel.availability ? await LanguageModel.availability() : 'available';
+      if(av==='unavailable') return null;
+      if(!_bai) _bai = await LanguageModel.create({initialPrompts:[{role:'system',content:sys}]});
+      return (await _bai.prompt(prompt))||null;
+    }
+    const ai = self.ai || window.ai;
+    if(ai && ai.languageModel && ai.languageModel.create){
+      const cap = ai.languageModel.capabilities ? await ai.languageModel.capabilities() : {available:'readily'};
+      if(cap && cap.available==='no') return null;
+      if(!_bai) _bai = await ai.languageModel.create({systemPrompt:sys});
+      return (await _bai.prompt(prompt))||null;
+    }
+    if(ai && ai.assistant && ai.assistant.create){
+      if(!_bai) _bai = await ai.assistant.create({systemPrompt:sys});
+      return (await _bai.prompt(prompt))||null;
+    }
+  }catch(e){ return null; }
+  return null;
+}
+async function ask(q){
+ add(q,'me'); const typing=document.createElement('div');typing.className='cop-msg bot';typing.innerHTML='<div class="cop-body">…</div>';thread.appendChild(typing);thread.scrollTop=thread.scrollHeight;
+ try{
+ const r=await fetch("{% url 'dashboard:copilot_ask' %}",{method:'POST',credentials:'include',
+ headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({q, history})});
+ const d=await r.json(); typing.remove();
+    if(d.action){
+      add(d.answer,'bot');
+      var w=document.createElement('div');w.className='cop-msg bot';
+      w.innerHTML='<div class="cop-body" style="background:#fff;border:1px solid var(--line)">'
+        +'<div style="font-weight:700;color:var(--ink)">'+esc(d.action.label)+'</div>'
+        +'<div style="color:var(--muted);font-size:13px;margin:3px 0 10px">'+esc(d.action.detail)+'</div>'
+        +'<div style="display:flex;gap:8px"><button class="btn btn-approve btn-sm" data-do="1">Exécuter</button>'
+        +'<button class="btn btn-ghost btn-sm" data-cancel="1">Annuler</button></div></div>';
+      thread.appendChild(w);thread.scrollTop=thread.scrollHeight;
+      var act=d.action;
+      w.querySelector('[data-cancel]').onclick=function(){w.remove();add('Action annulée.','bot');};
+      w.querySelector('[data-do]').onclick=async function(){
+        this.disabled=true;this.textContent='…';
+        try{var rr=await fetch('{% url "dashboard:copilot_execute" %}',{method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({action:act})});
+          var rj=await rr.json();w.remove();
+          add((rj.ok?'✓ ':'')+rj.message,'bot');
+          if(rj.ok&&rj.link){var lk=document.createElement('div');lk.className='cop-msg bot';
+            lk.innerHTML='<div class="cop-body" style="background:transparent;padding:4px 0"><a class="btn btn-ghost btn-sm" href="'+rj.link+'">Ouvrir →</a></div>';
+            thread.appendChild(lk);thread.scrollTop=thread.scrollHeight;}
+        }catch(e){w.remove();add("Erreur lors de l exécution.","bot");}
+      };
+      history.push({role:'user',content:q});history.push({role:'assistant',content:d.answer});
+      return;
+    }
+    if(d.try_browser){
+      const think=document.createElement('div');think.className='cop-msg bot';think.innerHTML='<div class="cop-body">…</div>';thread.appendChild(think);thread.scrollTop=thread.scrollHeight;
+      let local=null; try{ local=await browserAI(q, history); }catch(e){ local=null; }
+      think.remove();
+      const finalTxt = local || d.answer;
+      add(finalTxt,'bot');
+      history.push({role:'user',content:q}); history.push({role:'assistant',content:finalTxt});
+      if(history.length>16) history=history.slice(-16); return;
+    }
+    add(d.answer,'bot');
+ history.push({role:'user',content:q}); history.push({role:'assistant',content:d.answer});
+ if(history.length>16) history=history.slice(-16);
+ }catch(e){ typing.remove(); add("Désolé, une erreur est survenue.",'bot'); }
+}
+document.getElementById('copForm').addEventListener('submit',e=>{e.preventDefault();const i=document.getElementById('copInput');if(i.value.trim()){ask(i.value.trim());i.value='';}});
+document.querySelectorAll('.cop-chip').forEach(c=>c.addEventListener('click',()=>ask(c.dataset.q)));
+</script>
+{% endblock %}

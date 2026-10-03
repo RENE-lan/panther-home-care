@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Conversation — Panther{% endblock %}
+{% block heading %}{{ client.code }} — {{ topic_label }}{% endblock %}
+{% block content %}
+<div class="asst-wrap">
+ <div class="asst-hero" style="padding:14px 18px">
+ <div class="asst-avatar">{% icon "message" 20 %}</div>
+ <div><div class="asst-title">{{ client.full_name }}</div><div class="asst-sub">Canal : {{ topic_label }} · <a href="{% url 'dashboard:client_360' client.id %}" style="color:#ffb37a">Ouvrir le dossier</a></div></div>
+ </div>
+ <div class="asst-thread" id="thread">
+ {% for m in thread %}
+ <div class="asst-msg {% if m.from_agency %}me{% else %}bot{% endif %}">{% if not m.from_agency %}<div class="ava">{{ client.first_name|first }}</div>{% endif %}<div class="bub">{{ m.body }}<div class="msg-time">{% if m.from_agency %}{{ m.sender.get_full_name|default:"Agence" }} · {% endif %}{{ m.created_at|date:"d/m H:i" }}</div></div></div>
+ {% empty %}<div class="conx-empty" style="text-align:center;padding:30px">Démarrez la conversation avec la famille.</div>{% endfor %}
+ </div>
+ <form class="asst-compose" method="post">{% csrf_token %}
+ <input name="body" placeholder="Répondre à la famille…" autocomplete="off" required>
+ <button class="asst-send" type="submit">{% icon "send" 18 %}</button>
+ </form>
+</div>
+{% endblock %}

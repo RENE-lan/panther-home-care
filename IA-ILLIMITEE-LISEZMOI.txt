@@ -1,0 +1,28 @@
+========================================================
+  RENDRE LE COPILOTE ILLIMITE (gratuit, 100% local)
+========================================================
+
+Le Copilote Panther repond deja, SANS rien installer, a tout ce qui
+concerne votre agence (retards, visites, factures, incidents, clients,
+soignants, priorites) et fait les calculs.
+
+Pour qu'il reponde a TOUTES les questions (culture generale, redaction,
+traduction, explications...), il lui faut un modele d'IA. La seule facon
+gratuite et sans cle est un modele LOCAL sur votre PC :
+
+  1) Telechargez Ollama : https://ollama.com  (installez-le, une fois)
+  2) Double-cliquez DEMARRER-PANTHER.bat
+     -> il telecharge automatiquement le modele "llama3.2" la 1ere fois
+        (~2 Go, une seule fois) puis lance Panther.
+  3) C'est tout. Le Copilote est desormais ILLIMITE, en local, sans cle,
+     sans internet, sans qu'aucune donnee ne quitte votre machine.
+
+Modele plus puissant (optionnel) : creez un fichier ".env" a cote de
+manage.py contenant :
+     AI_MODEL=qwen2.5
+puis relancez. (Autres options : mistral, llama3.1, phi3...)
+
+Pourquoi ce n'est pas "deja installe" dans le zip ?
+Un modele d'IA pese plusieurs gigaoctets et doit tourner comme un
+programme : un fichier .zip ne peut pas installer de logiciel. Une fois
+Ollama pose, tout le reste est automatique.

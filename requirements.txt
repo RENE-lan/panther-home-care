@@ -1,0 +1,10 @@
+# Core app — pure-Python, installs cleanly everywhere (incl. Windows / Python 3.14)
+Django>=5.0,<6.2
+fpdf2>=2.7                          # PDF generation (dossiers, reports, brief)
+django-allauth[socialaccount]>=65,<66   # accounts: email + Google/Apple/Facebook
+whitenoise>=6.7                     # serve static files
+dj-database-url>=2.2                # parse DATABASE_URL (Render)
+django-cors-headers>=4.4            # allow the React frontend origin
+
+# Production-only extras (Postgres driver + WSGI server) live in requirements-prod.txt,
+# installed automatically on Render. You do NOT need them for local SQLite development.
